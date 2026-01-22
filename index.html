@@ -57,7 +57,7 @@
         const SUPABASE_URL = 'https://jskwaqyxbdmnwtxfwngf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impza3dhcXl4YmRtbnd0eGZ3bmdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0OTcxNDgsImV4cCI6MjA1MzA3MzE0OH0.sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const translations = {
             en: {
@@ -180,7 +180,7 @@
 
         async function login(username, password) {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await db
                     .from('users')
                     .select('*, companies(*)')
                     .eq('username', username)
@@ -241,7 +241,7 @@
         }
 
         async function renderSuppliersList() {
-            const { data: suppliers, error } = await supabase
+            const { data: suppliers, error } = await db
                 .from('suppliers')
                 .select('*')
                 .order('name');
@@ -258,7 +258,7 @@
                         <h1 class="text-2xl font-bold">${t('suppliers')}</h1>
                         <div class="flex gap-2 items-center">
                             ${isAdmin ? `<button onclick="showSection('admin')" class="btn-secondary text-sm">${t('admin')}</button>` : ''}
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                             <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
@@ -286,7 +286,7 @@
                 return '';
             }
 
-            const { data: orders, error } = await supabase
+            const { data: orders, error } = await db
                 .from('orders')
                 .select('*, companies(*)')
                 .eq('supplier_id', selectedSupplier.id)
@@ -361,7 +361,7 @@
                 return '';
             }
 
-            const { data: products, error } = await supabase
+            const { data: products, error } = await db
                 .from('products')
                 .select('*')
                 .eq('supplier_id', selectedSupplier.id)
@@ -439,7 +439,7 @@
                 return '';
             }
 
-            const { data: products, error } = await supabase
+            const { data: products, error } = await db
                 .from('products')
                 .select('*')
                 .eq('supplier_id', selectedSupplier.id)
@@ -521,7 +521,7 @@
                 return '';
             }
 
-            let query = supabase
+            let query = db
                 .from('orders')
                 .select('*, companies(*)')
                 .eq('supplier_id', selectedSupplier.id);
@@ -603,7 +603,7 @@
         }
 
         async function renderEditOrder(orderId) {
-            const { data: order, error: orderError } = await supabase
+            const { data: order, error: orderError } = await db
                 .from('orders')
                 .select('*, companies(*), suppliers(*)')
                 .eq('id', orderId)
@@ -614,12 +614,12 @@
                 return '';
             }
 
-            const { data: orderItems, error: itemsError } = await supabase
+            const { data: orderItems, error: itemsError } = await db
                 .from('order_items')
                 .select('*, products(*)')
                 .eq('order_id', orderId);
 
-            const { data: allProducts, error: productsError } = await supabase
+            const { data: allProducts, error: productsError } = await db
                 .from('products')
                 .select('*')
                 .eq('supplier_id', order.supplier_id)
@@ -694,7 +694,7 @@
         }
 
         async function renderViewOrder(orderId) {
-            const { data: order, error: orderError } = await supabase
+            const { data: order, error: orderError } = await db
                 .from('orders')
                 .select('*, companies(*), suppliers(*)')
                 .eq('id', orderId)
@@ -705,7 +705,7 @@
                 return '';
             }
 
-            const { data: orderItems, error: itemsError } = await supabase
+            const { data: orderItems, error: itemsError } = await db
                 .from('order_items')
                 .select('*, products(*)')
                 .eq('order_id', orderId);
@@ -776,12 +776,12 @@
         }
 
         async function renderAdminUsers() {
-            const { data: users, error: usersError } = await supabase
+            const { data: users, error: usersError } = await db
                 .from('users')
                 .select('*, companies(name)')
                 .order('username');
 
-            const { data: companies, error: companiesError } = await supabase
+            const { data: companies, error: companiesError } = await db
                 .from('companies')
                 .select('*')
                 .order('name');
@@ -859,7 +859,7 @@
         }
 
         async function renderAdminCompanies() {
-            const { data: companies, error } = await supabase
+            const { data: companies, error } = await db
                 .from('companies')
                 .select('*')
                 .order('name');
@@ -920,7 +920,7 @@
         }
 
         async function renderAdminSuppliers() {
-            const { data: suppliers, error } = await supabase
+            const { data: suppliers, error } = await db
                 .from('suppliers')
                 .select('*')
                 .order('name');
@@ -990,12 +990,12 @@
             }
 
             if (editingItem.id) {
-                await supabase
+                await db
                     .from('products')
                     .update({ name, unit })
                     .eq('id', editingItem.id);
             } else {
-                await supabase
+                await db
                     .from('products')
                     .insert({
                         name,
@@ -1011,7 +1011,7 @@
         async function deleteProduct(productId) {
             if (!confirm(t('confirmDelete'))) return;
 
-            await supabase
+            await db
                 .from('products')
                 .delete()
                 .eq('id', productId);
@@ -1020,7 +1020,7 @@
         }
 
         async function saveNewOrder() {
-            const { data: products } = await supabase
+            const { data: products } = await db
                 .from('products')
                 .select('*')
                 .eq('supplier_id', selectedSupplier.id);
@@ -1042,7 +1042,7 @@
                 return;
             }
 
-            const { data: order, error: orderError } = await supabase
+            const { data: order, error: orderError } = await db
                 .from('orders')
                 .insert({
                     company_id: currentUser.company_id,
@@ -1062,7 +1062,7 @@
                 ...item
             }));
 
-            await supabase
+            await db
                 .from('order_items')
                 .insert(orderItems);
 
@@ -1079,7 +1079,7 @@
             const orderId = document.getElementById('editOrderId').value;
             const supplierId = document.getElementById('editSupplierId').value;
 
-            const { data: products } = await supabase
+            const { data: products } = await db
                 .from('products')
                 .select('*')
                 .eq('supplier_id', supplierId);
@@ -1101,7 +1101,7 @@
                 return;
             }
 
-            await supabase
+            await db
                 .from('order_items')
                 .delete()
                 .eq('order_id', orderId);
@@ -1111,7 +1111,7 @@
                 ...item
             }));
 
-            await supabase
+            await db
                 .from('order_items')
                 .insert(orderItems);
 
@@ -1121,7 +1121,7 @@
         async function deleteOrder(orderId) {
             if (!confirm(t('confirmDelete'))) return;
 
-            await supabase
+            await db
                 .from('orders')
                 .delete()
                 .eq('id', orderId);
@@ -1130,7 +1130,7 @@
         }
 
         async function submitOrder(orderId) {
-            await supabase
+            await db
                 .from('orders')
                 .update({ status: 'pending_admin' })
                 .eq('id', orderId);
@@ -1139,7 +1139,7 @@
         }
 
         async function confirmOrder(orderId) {
-            await supabase
+            await db
                 .from('orders')
                 .update({ status: 'confirmed' })
                 .eq('id', orderId);
@@ -1165,12 +1165,12 @@
             }
 
             if (editingItem.id) {
-                await supabase
+                await db
                     .from('users')
                     .update({ username, password, role, company_id: companyId })
                     .eq('id', editingItem.id);
             } else {
-                await supabase
+                await db
                     .from('users')
                     .insert({ username, password, role, company_id: companyId });
             }
@@ -1182,7 +1182,7 @@
         async function deleteUser(userId) {
             if (!confirm(t('confirmDelete'))) return;
 
-            await supabase
+            await db
                 .from('users')
                 .delete()
                 .eq('id', userId);
@@ -1201,12 +1201,12 @@
             }
 
             if (editingItem.id) {
-                await supabase
+                await db
                     .from('companies')
                     .update({ name, phone, address })
                     .eq('id', editingItem.id);
             } else {
-                await supabase
+                await db
                     .from('companies')
                     .insert({ name, phone, address });
             }
@@ -1218,7 +1218,7 @@
         async function deleteCompany(companyId) {
             if (!confirm(t('confirmDelete'))) return;
 
-            await supabase
+            await db
                 .from('companies')
                 .delete()
                 .eq('id', companyId);
@@ -1237,12 +1237,12 @@
             }
 
             if (editingItem.id) {
-                await supabase
+                await db
                     .from('suppliers')
                     .update({ name, contact_person: contactPerson, phone })
                     .eq('id', editingItem.id);
             } else {
-                await supabase
+                await db
                     .from('suppliers')
                     .insert({ name, contact_person: contactPerson, phone });
             }
@@ -1254,7 +1254,7 @@
         async function deleteSupplier(supplierId) {
             if (!confirm(t('confirmDelete'))) return;
 
-            await supabase
+            await db
                 .from('suppliers')
                 .delete()
                 .eq('id', supplierId);
