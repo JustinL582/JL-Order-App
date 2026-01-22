@@ -10,10 +10,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
+            background: #f8f9fa;
             padding-bottom: 80px;
         }
-        .floating-btn {
+        .fab {
             position: fixed;
             width: 56px;
             height: 56px;
@@ -21,25 +21,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             cursor: pointer;
             z-index: 100;
         }
-        .floating-add {
-            bottom: 100px;
-            right: 20px;
-            background: #2563eb;
-            color: white;
-            font-size: 32px;
-            font-weight: 300;
-        }
-        .floating-delete {
-            bottom: 30px;
-            right: 20px;
-            background: #dc2626;
-            color: white;
-        }
-        .modal-overlay {
+        .fab-add { bottom: 100px; right: 20px; background: #2563eb; color: white; font-size: 28px; }
+        .fab-delete { bottom: 30px; right: 20px; background: #dc2626; color: white; }
+        .modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -51,11 +39,11 @@
             justify-content: center;
             z-index: 200;
         }
-        .modal-overlay.active { display: flex; }
-        .qty-control {
+        .modal.show { display: flex; }
+        .qty-ctrl {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         .qty-btn {
             width: 32px;
@@ -66,15 +54,15 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px;
             user-select: none;
             background: white;
         }
-        .qty-value {
+        .qty-num {
             min-width: 40px;
             text-align: center;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 15px;
         }
         .bottom-bar {
             position: fixed;
@@ -85,13 +73,14 @@
             border-top: 1px solid #e5e7eb;
             padding: 12px 16px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
         }
-        .btn { padding: 14px 24px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
-        .btn-primary { background: #2563eb; color: white; }
+        .btn { padding: 13px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; font-size: 15px; }
+        .btn-blue { background: #2563eb; color: white; }
         .btn-cyan { background: #06b6d4; color: white; }
         .btn-gray { background: #6b7280; color: white; }
-        .btn-white { background: white; border: 2px solid #d1d5db; color: #374151; }
+        .btn-white { background: white; border: 2px solid #d1d5db; color: #1f2937; }
+        .btn-red { background: #dc2626; color: white; }
         .header {
             background: white;
             padding: 16px;
@@ -99,44 +88,48 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         .card {
             background: white;
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
     </style>
 </head>
 <body>
     <div id="app"></div>
-    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)"></div>
+    <div id="modal" class="modal" onclick="if(event.target.id==='modal') closeModal()"></div>
 
     <script>
         const SUPABASE_URL = 'https://jskwaqyxbdmnwtxfwngf.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_ANON_KEY = 'sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let state = {
+        let app = {
             user: null,
-            view: 'login',
+            page: 'login',
             supplier: null,
-            orderQty: {},
+            qty: {},
             lang: localStorage.getItem('lang') || 'en'
         };
 
-        const txt = {
+        const i18n = {
             en: {
                 login: 'Login', username: 'Username', password: 'Password', logout: 'Logout',
                 suppliers: 'Suppliers', addSupplier: 'Add Supplier', deleteSupplier: 'Delete Supplier',
                 newOrder: 'New Order', manageProducts: 'Manage Products', orderHistory: 'Order History',
                 addProduct: 'Add Product', name: 'Name', unit: 'Unit', quantity: 'Quantity',
                 edit: 'Edit', delete: 'Delete', save: 'Save', cancel: 'Cancel', back: 'Back',
-                clearQty: 'Clear Qty', preview: 'Preview/Confirm', contactPerson: 'Contact Person',
-                phone: 'Phone', noProducts: 'No products', noOrders: 'No orders', order: 'Order',
+                clearQty: 'Clear Qty', preview: 'Preview/Confirm', contact: 'Contact', phone: 'Phone',
+                noProducts: 'No products', noOrders: 'No orders', order: 'Order #',
                 company: 'Company', address: 'Address', date: 'Date', status: 'Status',
-                draft: 'Draft', pending: 'Pending', confirmed: 'Confirmed', selectToDelete: 'Select to Delete'
+                draft: 'Draft', pending: 'Pending', confirmed: 'Confirmed', select: 'Select to Delete',
+                view: 'View', created: 'Created', close: 'Close'
             },
             zh: {
                 login: '登录', username: '用户名', password: '密码', logout: '登出',
@@ -144,103 +137,98 @@
                 newOrder: '新订单', manageProducts: '管理产品', orderHistory: '订单历史',
                 addProduct: '添加产品', name: '名称', unit: '单位', quantity: '数量',
                 edit: '编辑', delete: '删除', save: '保存', cancel: '取消', back: '返回',
-                clearQty: '清空数量', preview: '预览/确认', contactPerson: '联系人',
-                phone: '电话', noProducts: '暂无产品', noOrders: '暂无订单', order: '订单',
+                clearQty: '清空数量', preview: '预览/确认', contact: '联系人', phone: '电话',
+                noProducts: '暂无产品', noOrders: '暂无订单', order: '订单 #',
                 company: '公司', address: '地址', date: '日期', status: '状态',
-                draft: '草稿', pending: '待确认', confirmed: '已确认', selectToDelete: '选择要删除的'
+                draft: '草稿', pending: '待确认', confirmed: '已确认', select: '选择要删除的',
+                view: '查看', created: '创建成功', close: '关闭'
             }
         };
 
-        const t = (key) => txt[state.lang][key] || key;
-        const setLang = (lang) => { state.lang = lang; localStorage.setItem('lang', lang); render(); };
+        const t = (k) => i18n[app.lang][k] || k;
+        const L = (l) => { app.lang = l; localStorage.setItem('lang', l); draw(); };
 
-        async function login(username, password) {
-            const { data, error } = await db.from('users')
+        async function login(u, p) {
+            const { data } = await db.from('users')
                 .select('*, companies(*)')
-                .eq('username', username.trim())
-                .eq('password', password.trim())
+                .eq('username', u.trim())
+                .eq('password', p.trim())
                 .single();
 
             if (data) {
-                state.user = data;
-                state.view = 'suppliers';
-                render();
+                app.user = data;
+                app.page = 'suppliers';
+                draw();
             } else {
                 alert('Invalid credentials');
             }
         }
 
-        function logout() {
-            state = { user: null, view: 'login', supplier: null, orderQty: {}, lang: state.lang };
-            render();
+        function go(page, supplier = null) {
+            app.page = page;
+            app.supplier = supplier;
+            app.qty = {};
+            draw();
         }
 
-        function navigate(view, supplier = null) {
-            state.view = view;
-            state.supplier = supplier;
-            state.orderQty = {};
-            render();
+        function setQty(pid, delta) {
+            if (!app.qty[pid]) app.qty[pid] = 0;
+            app.qty[pid] = Math.max(0, app.qty[pid] + delta);
+            document.getElementById(`q${pid}`).textContent = app.qty[pid];
         }
 
-        function changeQty(productId, delta) {
-            if (!state.orderQty[productId]) state.orderQty[productId] = 0;
-            state.orderQty[productId] = Math.max(0, state.orderQty[productId] + delta);
-            document.getElementById(`qty-${productId}`).textContent = state.orderQty[productId];
+        function clearAll() {
+            app.qty = {};
+            draw();
         }
 
-        function clearQty() {
-            state.orderQty = {};
-            render();
-        }
+        async function submitOrder() {
+            const items = Object.entries(app.qty).filter(([_, q]) => q > 0);
+            if (items.length === 0) return alert('Add quantities');
 
-        async function previewOrder() {
-            const items = Object.entries(state.orderQty).filter(([_, q]) => q > 0);
-            if (items.length === 0) return alert('Please add quantities');
-
-            const { data: order } = await db.from('orders').insert({
-                company_id: state.user.company_id,
-                supplier_id: state.supplier.id,
+            const { data: ord } = await db.from('orders').insert({
+                company_id: app.user.company_id,
+                supplier_id: app.supplier.id,
                 status: 'staff_draft'
             }).select().single();
 
             await db.from('order_items').insert(
-                items.map(([product_id, quantity]) => ({ order_id: order.id, product_id, quantity }))
+                items.map(([product_id, quantity]) => ({ order_id: ord.id, product_id, quantity }))
             );
 
-            alert('Order created!');
-            navigate('dashboard', state.supplier);
+            alert(t('created'));
+            go('dashboard', app.supplier);
         }
 
-        function showModal(content) {
-            const overlay = document.getElementById('modal-overlay');
-            overlay.innerHTML = `<div class="bg-white rounded-xl p-6 mx-4 max-w-md w-full" onclick="event.stopPropagation()">${content}</div>`;
-            overlay.classList.add('active');
+        function modal(html) {
+            const m = document.getElementById('modal');
+            m.innerHTML = `<div class="bg-white rounded-xl p-6 mx-4 max-w-md w-full" onclick="event.stopPropagation()">${html}</div>`;
+            m.classList.add('show');
         }
 
-        function closeModal(event) {
-            if (event && event.target.id !== 'modal-overlay') return;
-            document.getElementById('modal-overlay').classList.remove('active');
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
         }
 
-        async function addSupplier() {
-            showModal(`
+        async function addSup() {
+            modal(`
                 <h2 class="text-xl font-bold mb-4">${t('addSupplier')}</h2>
-                <input id="name" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="contact" placeholder="${t('contactPerson')}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="phone" placeholder="${t('phone')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="n" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="c" placeholder="${t('contact')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="p" placeholder="${t('phone')}" class="w-full border rounded-lg p-3 mb-3">
                 <div class="flex gap-3">
-                    <button onclick="saveSupplier()" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="saveSup()" class="btn btn-blue flex-1">${t('save')}</button>
                     <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
                 </div>
             `);
         }
 
-        async function saveSupplier(id = null) {
-            const name = document.getElementById('name').value.trim();
-            const contact = document.getElementById('contact').value.trim();
-            const phone = document.getElementById('phone').value.trim();
+        async function saveSup(id = null) {
+            const name = document.getElementById('n').value.trim();
+            const contact = document.getElementById('c').value.trim();
+            const phone = document.getElementById('p').value.trim();
 
-            if (!name || !contact || !phone) return alert('Fill all fields');
+            if (!name || !contact || !phone) return alert('Fill all');
 
             if (id) {
                 await db.from('suppliers').update({ name, contact_person: contact, phone }).eq('id', id);
@@ -249,34 +237,32 @@
             }
 
             closeModal();
-            render();
+            draw();
         }
 
-        async function editSupplier(id) {
+        async function editSup(id) {
             const { data } = await db.from('suppliers').select('*').eq('id', id).single();
-            showModal(`
+            modal(`
                 <h2 class="text-xl font-bold mb-4">${t('edit')}</h2>
-                <input id="name" value="${data.name}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="contact" value="${data.contact_person}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="phone" value="${data.phone}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="n" value="${data.name}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="c" value="${data.contact_person}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="p" value="${data.phone}" class="w-full border rounded-lg p-3 mb-3">
                 <div class="flex gap-3">
-                    <button onclick="saveSupplier('${id}')" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="saveSup('${id}')" class="btn btn-blue flex-1">${t('save')}</button>
                     <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
                 </div>
             `);
         }
 
-        async function showDeleteSupplierModal() {
-            const { data: suppliers } = await db.from('suppliers').select('*').order('name');
-            showModal(`
-                <h2 class="text-xl font-bold mb-4">${t('selectToDelete')}</h2>
+        async function delSupModal() {
+            const { data: sups } = await db.from('suppliers').select('*').order('name');
+            modal(`
+                <h2 class="text-xl font-bold mb-4">${t('select')}</h2>
                 <div class="max-h-96 overflow-y-auto space-y-2">
-                    ${suppliers.map(s => `
+                    ${sups.map(s => `
                         <div class="flex justify-between items-center border rounded-lg p-3">
                             <span>${s.name}</span>
-                            <button onclick="deleteSupplier('${s.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
-                                ${t('delete')}
-                            </button>
+                            <button onclick="delSup('${s.id}')" class="btn btn-red text-sm px-4 py-2">${t('delete')}</button>
                         </div>
                     `).join('')}
                 </div>
@@ -284,153 +270,151 @@
             `);
         }
 
-        async function deleteSupplier(id) {
-            if (confirm('Delete supplier?')) {
+        async function delSup(id) {
+            if (confirm('Delete?')) {
                 await db.from('suppliers').delete().eq('id', id);
                 closeModal();
-                render();
+                draw();
             }
         }
 
-        async function addProduct() {
-            showModal(`
+        async function addProd() {
+            modal(`
                 <h2 class="text-xl font-bold mb-4">${t('addProduct')}</h2>
-                <input id="pname" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="punit" placeholder="${t('unit')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="pn" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="pu" placeholder="${t('unit')}" class="w-full border rounded-lg p-3 mb-3">
                 <div class="flex gap-3">
-                    <button onclick="saveProduct()" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="saveProd()" class="btn btn-blue flex-1">${t('save')}</button>
                     <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
                 </div>
             `);
         }
 
-        async function saveProduct(id = null) {
-            const name = document.getElementById('pname').value.trim();
-            const unit = document.getElementById('punit').value.trim();
+        async function saveProd(id = null) {
+            const name = document.getElementById('pn').value.trim();
+            const unit = document.getElementById('pu').value.trim();
 
-            if (!name || !unit) return alert('Fill all fields');
+            if (!name || !unit) return alert('Fill all');
 
             if (id) {
                 await db.from('products').update({ name, unit }).eq('id', id);
             } else {
-                await db.from('products').insert({ name, unit, supplier_id: state.supplier.id });
+                await db.from('products').insert({ name, unit, supplier_id: app.supplier.id });
             }
 
             closeModal();
-            render();
+            draw();
         }
 
-        async function editProduct(id, name, unit) {
-            showModal(`
+        async function editProd(id, name, unit) {
+            modal(`
                 <h2 class="text-xl font-bold mb-4">${t('edit')}</h2>
-                <input id="pname" value="${name}" class="w-full border rounded-lg p-3 mb-3">
-                <input id="punit" value="${unit}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="pn" value="${name}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="pu" value="${unit}" class="w-full border rounded-lg p-3 mb-3">
                 <div class="flex gap-3">
-                    <button onclick="saveProduct('${id}')" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="saveProd('${id}')" class="btn btn-blue flex-1">${t('save')}</button>
                     <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
                 </div>
             `);
         }
 
-        async function deleteProduct(id) {
-            if (confirm('Delete product?')) {
+        async function delProd(id) {
+            if (confirm('Delete?')) {
                 await db.from('products').delete().eq('id', id);
-                render();
+                draw();
             }
         }
 
-        async function viewOrder(orderId) {
-            const { data: order } = await db.from('orders').select('*, companies(*), suppliers(*)').eq('id', orderId).single();
-            const { data: items } = await db.from('order_items').select('*, products(*)').eq('order_id', orderId);
+        async function viewOrd(oid) {
+            const { data: ord } = await db.from('orders').select('*, companies(*), suppliers(*)').eq('id', oid).single();
+            const { data: items } = await db.from('order_items').select('*, products(*)').eq('order_id', oid);
 
-            const statusMap = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
-            const date = new Date(order.created_at).toLocaleDateString();
+            const sm = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
+            const dt = new Date(ord.created_at).toLocaleDateString();
 
-            const html = `
-                <div class="header">
-                    <button onclick="navigate('orderHistory', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
-                    <h1 class="text-xl font-bold">${t('order')} #${order.id.slice(0, 8)}</h1>
+            modal(`
+                <h2 class="text-lg font-bold mb-3">${t('order')}${ord.id.slice(0, 8)}</h2>
+                <div class="border-b pb-3 mb-3">
+                    <div class="font-bold">${ord.companies.name}</div>
+                    <div class="text-sm text-gray-600">${ord.companies.phone}</div>
+                    <div class="text-sm text-gray-600">${ord.companies.address}</div>
+                    <div class="text-xs text-gray-500 mt-1">${dt} • ${sm[ord.status]}</div>
                 </div>
-                <div class="p-4">
-                    <div class="card">
-                        <div class="font-bold text-lg">${order.companies.name}</div>
-                        <div class="text-sm text-gray-600">${order.companies.phone}</div>
-                        <div class="text-sm text-gray-600">${order.companies.address}</div>
-                        <div class="text-xs text-gray-500 mt-2">${date} • ${statusMap[order.status]}</div>
-                    </div>
-                    <div class="card">
-                        <div class="font-semibold">${order.suppliers.name}</div>
-                    </div>
-                    <div class="card">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="text-left py-2">${t('name')}</th>
-                                    <th class="text-left py-2">${t('unit')}</th>
-                                    <th class="text-right py-2">${t('quantity')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${items.map(i => `
-                                    <tr class="border-b">
-                                        <td class="py-2">${i.products.name}</td>
-                                        <td class="py-2 text-sm text-gray-600">${i.products.unit}</td>
-                                        <td class="py-2 text-right font-semibold">${i.quantity}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="border-b pb-3 mb-3">
+                    <div class="font-semibold">${ord.suppliers.name}</div>
                 </div>
-            `;
-            document.getElementById('app').innerHTML = html;
+                <table class="w-full text-sm">
+                    <thead class="border-b">
+                        <tr>
+                            <th class="text-left py-2">${t('name')}</th>
+                            <th class="text-left py-2">${t('unit')}</th>
+                            <th class="text-right py-2">${t('quantity')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(i => `
+                            <tr class="border-b">
+                                <td class="py-2">${i.products.name}</td>
+                                <td class="py-2 text-gray-600">${i.products.unit}</td>
+                                <td class="py-2 text-right font-semibold">${i.quantity}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <button onclick="closeModal()" class="btn btn-gray w-full mt-4">${t('close')}</button>
+            `);
         }
 
-        async function render() {
-            const app = document.getElementById('app');
-            if (!state.user) {
-                app.innerHTML = `
+        async function draw() {
+            const el = document.getElementById('app');
+            
+            if (!app.user) {
+                el.innerHTML = `
                     <div class="min-h-screen flex items-center justify-center p-4">
                         <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
                             <div class="flex justify-between mb-6">
                                 <h1 class="text-2xl font-bold">${t('login')}</h1>
-                                <button onclick="setLang('${state.lang === 'en' ? 'zh' : 'en'}')" class="text-blue-600 text-sm">
-                                    ${state.lang === 'en' ? '中文' : 'EN'}
+                                <button onclick="L('${app.lang === 'en' ? 'zh' : 'en'}')" class="text-blue-600 text-sm">
+                                    ${app.lang === 'en' ? '中文' : 'EN'}
                                 </button>
                             </div>
-                            <input id="user" placeholder="${t('username')}" class="w-full border rounded-lg p-3 mb-3">
-                            <input id="pass" type="password" placeholder="${t('password')}" class="w-full border rounded-lg p-3 mb-4" onkeypress="if(event.key==='Enter') login(document.getElementById('user').value, document.getElementById('pass').value)">
-                            <button onclick="login(document.getElementById('user').value, document.getElementById('pass').value)" class="btn btn-primary w-full">${t('login')}</button>
+                            <input id="u" placeholder="${t('username')}" class="w-full border rounded-lg p-3 mb-3">
+                            <input id="pw" type="password" placeholder="${t('password')}" class="w-full border rounded-lg p-3 mb-4" 
+                                   onkeypress="if(event.key==='Enter') login(document.getElementById('u').value, document.getElementById('pw').value)">
+                            <button onclick="login(document.getElementById('u').value, document.getElementById('pw').value)" 
+                                    class="btn btn-blue w-full">${t('login')}</button>
+                            <div class="text-xs text-gray-500 mt-3 text-center">Demo: superadmin / 123456</div>
                         </div>
                     </div>
                 `;
                 return;
             }
 
-            if (state.view === 'suppliers') {
-                const { data: suppliers } = await db.from('suppliers').select('*').order('name');
-                const isAdmin = state.user.role === 'super_admin';
+            if (app.page === 'suppliers') {
+                const { data: sups } = await db.from('suppliers').select('*').order('name');
+                const adm = app.user.role === 'super_admin';
 
-                app.innerHTML = `
+                el.innerHTML = `
                     <div class="header">
                         <h1 class="text-xl font-bold flex-1">${t('suppliers')}</h1>
-                        <button onclick="setLang('${state.lang === 'en' ? 'zh' : 'en'}')" class="text-blue-600 text-sm mr-2">
-                            ${state.lang === 'en' ? '中文' : 'EN'}
+                        <button onclick="L('${app.lang === 'en' ? 'zh' : 'en}')" class="text-blue-600 text-sm mr-2">
+                            ${app.lang === 'en' ? '中文' : 'EN'}
                         </button>
-                        <button onclick="logout()" class="text-sm text-gray-600">${t('logout')}</button>
+                        <button onclick="app.user=null;draw()" class="text-sm text-gray-600">${t('logout')}</button>
                     </div>
                     <div class="p-4">
-                        ${suppliers.map(s => `
+                        ${sups.map(s => `
                             <div class="card">
-                                <div class="flex justify-between items-center">
-                                    <div onclick="navigate('dashboard', ${JSON.stringify(s).replace(/"/g, '&quot;')})" class="flex-1 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div onclick="go('dashboard', ${JSON.stringify(s).replace(/"/g, '&quot;')})" class="flex-1 cursor-pointer">
                                         <div class="font-bold text-lg">${s.name}</div>
                                         <div class="text-sm text-gray-600">${s.contact_person} • ${s.phone}</div>
                                     </div>
-                                    ${isAdmin ? `
-                                        <button onclick="editSupplier('${s.id}')" class="text-blue-600 ml-3">
+                                    ${adm ? `
+                                        <button onclick="editSup('${s.id}')" class="text-blue-600 ml-3">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                                             </svg>
                                         </button>
                                     ` : ''}
@@ -438,55 +422,58 @@
                             </div>
                         `).join('')}
                     </div>
-                    ${isAdmin ? `
-                        <div class="floating-btn floating-add" onclick="addSupplier()">+</div>
-                        <div class="floating-btn floating-delete" onclick="showDeleteSupplierModal()">
+                    ${adm ? `
+                        <div class="fab fab-add" onclick="addSup()">+</div>
+                        <div class="fab fab-delete" onclick="delSupModal()">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
                         </div>
                     ` : ''}
                 `;
             }
 
-            if (state.view === 'dashboard') {
-                const isStaff = state.user.role === 'staff';
-                const isAdmin = state.user.role === 'super_admin';
+            if (app.page === 'dashboard') {
+                const staff = app.user.role === 'staff';
+                const adm = app.user.role === 'super_admin';
 
-                app.innerHTML = `
+                el.innerHTML = `
                     <div class="header">
-                        <button onclick="navigate('suppliers')" class="text-2xl">←</button>
-                        <h1 class="text-xl font-bold">${state.supplier.name}</h1>
+                        <button onclick="go('suppliers')" class="text-2xl">←</button>
+                        <h1 class="text-xl font-bold">${app.supplier.name}</h1>
                     </div>
                     <div class="p-4 space-y-3">
-                        ${isStaff ? `<button onclick="navigate('newOrder', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-primary w-full">+ ${t('newOrder')}</button>` : ''}
-                        ${isAdmin ? `<button onclick="navigate('products', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-cyan w-full">${t('manageProducts')}</button>` : ''}
-                        <button onclick="navigate('orderHistory', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-gray w-full">${t('orderHistory')}</button>
+                        ${staff ? `<button onclick="go('newOrder', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="btn btn-blue w-full text-lg">+ ${t('newOrder')}</button>` : ''}
+                        ${adm ? `<button onclick="go('products', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="btn btn-cyan w-full">${t('manageProducts')}</button>` : ''}
+                        <button onclick="go('orderHistory', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="btn btn-gray w-full">${t('orderHistory')}</button>
                     </div>
                 `;
             }
 
-            if (state.view === 'products') {
-                const { data: products } = await db.from('products').select('*').eq('supplier_id', state.supplier.id).order('name');
+            if (app.page === 'products') {
+                const { data: prods } = await db.from('products').select('*').eq('supplier_id', app.supplier.id).order('name');
 
-                app.innerHTML = `
+                el.innerHTML = `
                     <div class="header">
-                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <button onclick="go('dashboard', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
                         <h1 class="text-xl font-bold">${t('manageProducts')}</h1>
                     </div>
                     <div class="p-4">
-                        <button onclick="addProduct()" class="btn btn-primary w-full mb-4">${t('addProduct')}</button>
-                        ${products.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noProducts')}</div>` : ''}
-                        ${products.map(p => `
+                        <button onclick="addProd()" class="btn btn-blue w-full mb-4">${t('addProduct')}</button>
+                        ${prods.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noProducts')}</div>` : ''}
+                        ${prods.map(p => `
                             <div class="card">
-                                <div class="flex justify-between items-center">
+                                <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="font-semibold">${p.name}</div>
                                         <div class="text-sm text-gray-600">${p.unit}</div>
                                     </div>
                                     <div class="flex gap-2">
-                                        <button onclick="editProduct('${p.id}', '${p.name}', '${p.unit}')" class="text-blue-600 px-3 py-1 border rounded-lg text-sm">${t('edit')}</button>
-                                        <button onclick="deleteProduct('${p.id}')" class="text-red-600 px-3 py-1 border rounded-lg text-sm">${t('delete')}</button>
+                                        <button onclick="editProd('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.unit}')" 
+                                                class="text-blue-600 px-3 py-1.5 border rounded-lg text-sm">${t('edit')}</button>
+                                        <button onclick="delProd('${p.id}')" 
+                                                class="text-red-600 px-3 py-1.5 border rounded-lg text-sm">${t('delete')}</button>
                                     </div>
                                 </div>
                             </div>
@@ -495,85 +482,80 @@
                 `;
             }
 
-            if (state.view === 'newOrder') {
-                const { data: products } = await db.from('products').select('*').eq('supplier_id', state.supplier.id).order('name');
+            if (app.page === 'newOrder') {
+                const { data: prods } = await db.from('products').select('*').eq('supplier_id', app.supplier.id).order('name');
 
-                app.innerHTML = `
+                el.innerHTML = `
                     <div class="header">
-                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <button onclick="go('dashboard', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
                         <h1 class="text-xl font-bold">${t('newOrder')}</h1>
                     </div>
                     <div class="p-4 pb-24">
-                        <div class="card mb-4">
-                            <div class="font-bold">${state.user.companies.name}</div>
-                            <div class="text-sm text-gray-600">${state.user.companies.phone}</div>
-                            <div class="text-sm text-gray-600">${state.user.companies.address}</div>
+                        <div class="card mb-3">
+                            <div class="font-bold">${app.user.companies.name}</div>
+                            <div class="text-sm text-gray-600">${app.user.companies.phone}</div>
+                            <div class="text-sm text-gray-600">${app.user.companies.address}</div>
                         </div>
-                        <div class="card mb-4">
-                            <div class="font-semibold">${state.supplier.name}</div>
+                        <div class="card mb-3">
+                            <div class="font-semibold">${app.supplier.name}</div>
                         </div>
-                        ${products.map(p => `
+                        ${prods.map(p => `
                             <div class="card">
-                                <div class="flex justify-between items-center">
+                                <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="font-semibold">${p.name}</div>
                                         <div class="text-sm text-gray-500">${p.unit}</div>
                                     </div>
-                                    <div class="qty-control">
-                                        <div class="qty-btn" onclick="changeQty('${p.id}', -1)">−</div>
-                                        <div class="qty-value" id="qty-${p.id}">${state.orderQty[p.id] || 0}</div>
-                                        <div class="qty-btn" onclick="changeQty('${p.id}', 1)">+</div>
+                                    <div class="qty-ctrl">
+                                        <div class="qty-btn" onclick="setQty('${p.id}', -1)">−</div>
+                                        <div class="qty-num" id="q${p.id}">${app.qty[p.id] || 0}</div>
+                                        <div class="qty-btn" onclick="setQty('${p.id}', 1)">+</div>
                                     </div>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                     <div class="bottom-bar">
-                        <button onclick="clearQty()" class="btn btn-white flex-1">${t('clearQty')}</button>
-                        <button onclick="previewOrder()" class="btn btn-primary flex-1">${t('preview')}</button>
+                        <button onclick="clearAll()" class="btn btn-white flex-1">${t('clearQty')}</button>
+                        <button onclick="submitOrder()" class="btn btn-blue flex-1">${t('preview')}</button>
                     </div>
                 `;
             }
 
-            if (state.view === 'orderHistory') {
-                let query = db.from('orders').select('*, companies(*)').eq('supplier_id', state.supplier.id);
-                if (state.user.role !== 'super_admin') {
-                    query = query.eq('company_id', state.user.company_id);
-                }
+            if (app.page === 'orderHistory') {
+                let q = db.from('orders').select('*, companies(*)').eq('supplier_id', app.supplier.id);
+                if (app.user.role !== 'super_admin') q = q.eq('company_id', app.user.company_id);
 
-                const { data: orders } = await query.order('created_at', { ascending: false });
+                const { data: ords } = await q.order('created_at', { ascending: false });
 
-                const filtered = state.user.role === 'staff'
-                    ? orders.filter(o => {
-                        if (o.status !== 'confirmed') return true;
-                        return (Date.now() - new Date(o.created_at).getTime()) <= 14 * 24 * 60 * 60 * 1000;
-                    })
-                    : orders;
+                const filt = app.user.role === 'staff'
+                    ? ords.filter(o => o.status !== 'confirmed' || (Date.now() - new Date(o.created_at).getTime()) <= 14 * 24 * 60 * 60 * 1000)
+                    : ords;
 
-                const statusMap = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
+                const sm = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
 
-                app.innerHTML = `
+                el.innerHTML = `
                     <div class="header">
-                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <button onclick="go('dashboard', ${JSON.stringify(app.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
                         <h1 class="text-xl font-bold">${t('orderHistory')}</h1>
                     </div>
                     <div class="p-4">
-                        ${filtered.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noOrders')}</div>` : ''}
-                        ${filtered.map(o => {
-                            const date = new Date(o.created_at).toLocaleDateString();
+                        ${filt.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noOrders')}</div>` : ''}
+                        ${filt.map(o => {
+                            const dt = new Date(o.created_at).toLocaleDateString();
                             return `
-                                <div class="card cursor-pointer" onclick="viewOrder('${o.id}')">
-                                    <div class="flex justify-between mb-2">
+                                <div class="card cursor-pointer" onclick="viewOrd('${o.id}')">
+                                    <div class="flex justify-between items-start">
                                         <div>
-                                            <div class="font-bold">${t('order')} #${o.id.slice(0, 8)}</div>
+                                            <div class="font-bold">${t('order')}${o.id.slice(0, 8)}</div>
                                             <div class="text-sm text-gray-600">${o.companies.name}</div>
                                         </div>
                                         <div class="text-right">
                                             <div class="text-sm font-semibold ${
                                                 o.status === 'confirmed' ? 'text-green-600' :
                                                 o.status === 'pending_admin' ? 'text-orange-600' : 'text-gray-600'
-                                            }">${statusMap[o.status]}</div>
-                                            <div class="text-xs text-gray-500">${date}</div>
+                                            }">${sm[o.status]}</div>
+                                            <div class="text-xs text-gray-500">${dt}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -584,7 +566,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', render);
+        document.addEventListener('DOMContentLoaded', draw);
     </script>
 </body>
 </html>
