@@ -5,174 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif;
+            padding-bottom: 80px;
+        }
         .btn-primary { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700; }
         .btn-secondary { @apply bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700; }
         .btn-danger { @apply bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700; }
         .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700; }
+        .fixed-bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            z-index: 50;
+        }
+        .fixed-bottom-bar button {
+            flex: 1;
+        }
+        .quantity-input {
+            width: 80px;
+            text-align: right;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div id="app"></div>
 
     <script>
+        // CONFIGURATION - Replace with your Supabase credentials
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const translations = {
             en: {
                 login: 'Login',
                 logout: 'Logout',
                 username: 'Username',
                 password: 'Password',
-                dashboard: 'Dashboard',
-                users: 'Users',
-                companies: 'Companies',
                 suppliers: 'Suppliers',
-                products: 'Products',
-                orders: 'Orders',
-                createOrder: 'Create Order',
+                manageProducts: 'Manage Products',
+                newOrder: 'New Order',
+                myOrders: 'My Orders',
+                allOrders: 'All Orders',
                 edit: 'Edit',
                 delete: 'Delete',
                 confirm: 'Confirm',
                 save: 'Save',
                 cancel: 'Cancel',
+                back: 'Back',
                 name: 'Name',
                 phone: 'Phone',
                 address: 'Address',
-                role: 'Role',
-                company: 'Company',
                 unit: 'Unit',
                 quantity: 'Quantity',
                 supplier: 'Supplier',
+                company: 'Company',
+                contactPerson: 'Contact Person',
+                addProduct: 'Add Product',
+                createOrder: 'Create Order',
+                orderNumber: 'Order #',
                 status: 'Status',
-                createdAt: 'Created At',
-                superAdmin: 'Super Admin',
-                companyAdmin: 'Company Admin',
-                staff: 'Staff',
                 staffDraft: 'Staff Draft',
                 pendingAdmin: 'Pending Admin',
                 confirmed: 'Confirmed',
-                addUser: 'Add User',
-                addCompany: 'Add Company',
-                addSupplier: 'Add Supplier',
-                addProduct: 'Add Product',
-                contactPerson: 'Contact Person',
-                noDataAvailable: 'No data available',
                 submitToAdmin: 'Submit to Admin',
                 quantityRequired: 'Please enter at least one quantity greater than 0',
                 confirmDelete: 'Are you sure you want to delete?',
-                orderNumber: 'Order #',
-                view: 'View'
+                view: 'View',
+                noProducts: 'No products available',
+                noOrders: 'No orders available',
+                loading: 'Loading...',
+                admin: 'Admin',
+                users: 'Users',
+                companies: 'Companies',
+                addUser: 'Add User',
+                addCompany: 'Add Company',
+                addSupplier: 'Add Supplier',
+                role: 'Role',
+                superAdmin: 'Super Admin',
+                companyAdmin: 'Company Admin',
+                staff: 'Staff'
             },
             zh: {
                 login: '登录',
                 logout: '登出',
                 username: '用户名',
                 password: '密码',
-                dashboard: '主页',
-                users: '用户',
-                companies: '公司',
                 suppliers: '供应商',
-                products: '产品',
-                orders: '订单',
-                createOrder: '创建订单',
+                manageProducts: '管理产品',
+                newOrder: '新订单',
+                myOrders: '我的订单',
+                allOrders: '所有订单',
                 edit: '编辑',
                 delete: '删除',
                 confirm: '确认',
                 save: '保存',
                 cancel: '取消',
+                back: '返回',
                 name: '名称',
                 phone: '电话',
                 address: '地址',
-                role: '角色',
-                company: '公司',
                 unit: '单位',
                 quantity: '数量',
                 supplier: '供应商',
+                company: '公司',
+                contactPerson: '联系人',
+                addProduct: '添加产品',
+                createOrder: '创建订单',
+                orderNumber: '订单 #',
                 status: '状态',
-                createdAt: '创建时间',
-                superAdmin: '超级管理员',
-                companyAdmin: '公司管理员',
-                staff: '员工',
                 staffDraft: '员工草稿',
                 pendingAdmin: '待管理员确认',
                 confirmed: '已确认',
-                addUser: '添加用户',
-                addCompany: '添加公司',
-                addSupplier: '添加供应商',
-                addProduct: '添加产品',
-                contactPerson: '联系人',
-                noDataAvailable: '暂无数据',
                 submitToAdmin: '提交给管理员',
                 quantityRequired: '请至少输入一个大于0的数量',
                 confirmDelete: '确定要删除吗？',
-                orderNumber: '订单 #',
-                view: '查看'
+                view: '查看',
+                noProducts: '暂无产品',
+                noOrders: '暂无订单',
+                loading: '加载中...',
+                admin: '管理',
+                users: '用户',
+                companies: '公司',
+                addUser: '添加用户',
+                addCompany: '添加公司',
+                addSupplier: '添加供应商',
+                role: '角色',
+                superAdmin: '超级管理员',
+                companyAdmin: '公司管理员',
+                staff: '员工'
             }
         };
 
-        class Store {
-            constructor() {
-                this.initializeData();
-            }
-
-            initializeData() {
-                if (!localStorage.getItem('initialized')) {
-                    const data = {
-                        users: [
-                            { id: 1, username: 'superadmin', password: 'admin', role: 'super_admin', companyId: null },
-                            { id: 2, username: 'companyadmin', password: 'admin', role: 'company_admin', companyId: 1 },
-                            { id: 3, username: 'staff', password: 'staff', role: 'staff', companyId: 1 }
-                        ],
-                        companies: [
-                            { id: 1, name: 'ABC Trading Co.', phone: '+1-555-0100', address: '123 Business St, City, State 12345' }
-                        ],
-                        suppliers: [
-                            { id: 1, name: 'Supplier A', contactPerson: 'John Doe', phone: '+1-555-0201' },
-                            { id: 2, name: 'Supplier B', contactPerson: 'Jane Smith', phone: '+1-555-0202' },
-                            { id: 3, name: 'Supplier C', contactPerson: 'Bob Wilson', phone: '+1-555-0203' }
-                        ],
-                        products: [
-                            { id: 1, name: 'Product Alpha', unit: 'kg', supplierId: 1 },
-                            { id: 2, name: 'Product Beta', unit: 'pcs', supplierId: 1 },
-                            { id: 3, name: 'Product Gamma', unit: 'box', supplierId: 2 },
-                            { id: 4, name: 'Product Delta', unit: 'liter', supplierId: 2 },
-                            { id: 5, name: 'Product Epsilon', unit: 'pack', supplierId: 3 }
-                        ],
-                        orders: [],
-                        nextUserId: 4,
-                        nextCompanyId: 2,
-                        nextSupplierId: 4,
-                        nextProductId: 6,
-                        nextOrderId: 1
-                    };
-                    
-                    Object.keys(data).forEach(key => {
-                        localStorage.setItem(key, JSON.stringify(data[key]));
-                    });
-                    localStorage.setItem('initialized', 'true');
-                }
-            }
-
-            get(key) {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : null;
-            }
-
-            set(key, value) {
-                localStorage.setItem(key, JSON.stringify(value));
-            }
-
-            getNextId(type) {
-                const key = `next${type.charAt(0).toUpperCase() + type.slice(1)}Id`;
-                const id = this.get(key);
-                this.set(key, id + 1);
-                return id;
-            }
-        }
-
-        const store = new Store();
         let currentUser = null;
         let currentLang = localStorage.getItem('language') || 'en';
+        let selectedSupplier = null;
+        let currentSection = 'suppliers';
+        let editingItem = null;
 
         function t(key) {
             return translations[currentLang][key] || key;
@@ -184,52 +163,45 @@
             render();
         }
 
-        function login(username, password) {
-            const users = store.get('users');
-            const user = users.find(u => u.username === username && u.password === password);
-            if (user) {
-                currentUser = user;
+        async function login(username, password) {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*, companies(*)')
+                    .eq('username', username)
+                    .eq('password', password)
+                    .single();
+
+                if (error || !data) {
+                    alert('Invalid credentials');
+                    return;
+                }
+
+                currentUser = data;
+                currentSection = 'suppliers';
                 render();
-            } else {
-                alert('Invalid credentials');
+            } catch (err) {
+                alert('Login error: ' + err.message);
             }
         }
 
         function logout() {
             currentUser = null;
+            selectedSupplier = null;
+            currentSection = 'suppliers';
             render();
         }
 
-        function canAccessOrders(user) {
-            return user.role === 'super_admin' || user.role === 'company_admin' || user.role === 'staff';
-        }
-
-        function getVisibleOrders(user) {
-            const orders = store.get('orders') || [];
-            if (user.role === 'super_admin') {
-                return orders;
-            }
-            
-            const userOrders = orders.filter(o => o.companyId === user.companyId);
-            
-            if (user.role === 'staff') {
-                const now = Date.now();
-                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-                return userOrders.filter(o => {
-                    if (o.status === 'staff_draft' || o.status === 'pending_admin') return true;
-                    if (o.status === 'confirmed') {
-                        return (now - o.createdAt) <= fourteenDays;
-                    }
-                    return false;
-                });
-            }
-            
-            return userOrders;
+        function showSection(section, supplier = null) {
+            currentSection = section;
+            selectedSupplier = supplier;
+            editingItem = null;
+            render();
         }
 
         function renderLogin() {
             return `
-                <div class="min-h-screen flex items-center justify-center">
+                <div class="min-h-screen flex items-center justify-center p-4">
                     <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold">${t('login')}</h1>
@@ -244,7 +216,7 @@
                             </div>
                             <div>
                                 <label class="block mb-1">${t('password')}</label>
-                                <input type="password" id="password" class="w-full border rounded px-3 py-2">
+                                <input type="password" id="password" class="w-full border rounded px-3 py-2" onkeypress="if(event.key==='Enter') handleLogin()">
                             </div>
                             <button onclick="handleLogin()" class="btn-primary w-full">${t('login')}</button>
                         </div>
@@ -253,130 +225,40 @@
             `;
         }
 
-        function renderDashboard() {
-            const roleText = {
-                super_admin: t('superAdmin'),
-                company_admin: t('companyAdmin'),
-                staff: t('staff')
-            };
+        async function renderSuppliersList() {
+            const { data: suppliers, error } = await supabase
+                .from('suppliers')
+                .select('*')
+                .order('name');
 
-            let sections = [];
-            
-            if (currentUser.role === 'super_admin') {
-                sections = ['users', 'companies', 'suppliers', 'products', 'orders'];
-            } else if (currentUser.role === 'company_admin') {
-                sections = ['products', 'orders'];
-            } else if (currentUser.role === 'staff') {
-                sections = ['orders'];
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading suppliers: ${error.message}</div>`;
             }
+
+            const isAdmin = currentUser.role === 'super_admin';
 
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-2xl font-bold">${t('dashboard')}</h1>
-                        <div class="flex gap-2">
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
+                        <h1 class="text-2xl font-bold">${t('suppliers')}</h1>
+                        <div class="flex gap-2 items-center">
+                            ${isAdmin ? `<button onclick="showSection('admin')" class="btn-secondary text-sm">${t('admin')}</button>` : ''}
+                            <button onclick="showSection('orders')" class="btn-primary text-sm">${currentUser.role === 'staff' ? t('myOrders') : t('allOrders')}</button>
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                             <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
                         </div>
                     </div>
-                    <div class="bg-white p-4 rounded shadow mb-4">
-                        <p class="text-sm text-gray-600">${currentUser.username} (${roleText[currentUser.role]})</p>
-                    </div>
-                    <div class="space-y-2">
-                        ${sections.map(section => `
-                            <button onclick="showSection('${section}')" class="btn-primary w-full">
-                                ${t(section)}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderUsers() {
-            const users = store.get('users');
-            const companies = store.get('companies');
-            const roleMap = {
-                super_admin: t('superAdmin'),
-                company_admin: t('companyAdmin'),
-                staff: t('staff')
-            };
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('users')}</h2>
-                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
-                    </div>
-                    <button onclick="showUserForm()" class="btn-primary w-full mb-4">${t('addUser')}</button>
-                    <div class="space-y-2">
-                        ${users.map(user => {
-                            const company = companies.find(c => c.id === user.companyId);
-                            return `
-                                <div class="bg-white p-3 rounded shadow">
-                                    <div class="font-semibold">${user.username}</div>
-                                    <div class="text-sm text-gray-600">${roleMap[user.role]}</div>
-                                    ${company ? `<div class="text-sm text-gray-600">${company.name}</div>` : ''}
-                                    <div class="flex gap-2 mt-2">
-                                        <button onclick="editUser(${user.id})" class="btn-primary text-sm">${t('edit')}</button>
-                                        <button onclick="deleteUser(${user.id})" class="btn-danger text-sm">${t('delete')}</button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderCompanies() {
-            const companies = store.get('companies');
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('companies')}</h2>
-                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
-                    </div>
-                    <button onclick="showCompanyForm()" class="btn-primary w-full mb-4">${t('addCompany')}</button>
-                    <div class="space-y-2">
-                        ${companies.map(company => `
-                            <div class="bg-white p-3 rounded shadow">
-                                <div class="font-semibold">${company.name}</div>
-                                <div class="text-sm text-gray-600">${company.phone}</div>
-                                <div class="text-sm text-gray-600">${company.address}</div>
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="editCompany(${company.id})" class="btn-primary text-sm">${t('edit')}</button>
-                                    <button onclick="deleteCompany(${company.id})" class="btn-danger text-sm">${t('delete')}</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderSuppliers() {
-            const suppliers = store.get('suppliers');
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('suppliers')}</h2>
-                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
-                    </div>
-                    <button onclick="showSupplierForm()" class="btn-primary w-full mb-4">${t('addSupplier')}</button>
-                    <div class="space-y-2">
+                    <div class="space-y-3">
                         ${suppliers.map(supplier => `
-                            <div class="bg-white p-3 rounded shadow">
-                                <div class="font-semibold">${supplier.name}</div>
-                                <div class="text-sm text-gray-600">${t('contactPerson')}: ${supplier.contactPerson}</div>
-                                <div class="text-sm text-gray-600">${supplier.phone}</div>
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="editSupplier(${supplier.id})" class="btn-primary text-sm">${t('edit')}</button>
-                                    <button onclick="deleteSupplier(${supplier.id})" class="btn-danger text-sm">${t('delete')}</button>
+                            <div class="bg-white p-4 rounded shadow">
+                                <div class="font-semibold text-lg mb-1">${supplier.name}</div>
+                                <div class="text-sm text-gray-600 mb-3">${supplier.contact_person} • ${supplier.phone}</div>
+                                <div class="flex gap-2">
+                                    ${isAdmin ? `<button onclick="showSection('products', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-primary flex-1">${t('manageProducts')}</button>` : ''}
+                                    ${currentUser.role === 'staff' ? `<button onclick="showSection('newOrder', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-success flex-1">${t('newOrder')}</button>` : ''}
+                                    ${!isAdmin && currentUser.role !== 'staff' ? `<button onclick="showSection('products', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-primary flex-1">${t('manageProducts')}</button>` : ''}
                                 </div>
                             </div>
                         `).join('')}
@@ -385,43 +267,160 @@
             `;
         }
 
-        function renderProducts() {
-            const products = store.get('products');
-            const suppliers = store.get('suppliers');
+        async function renderProducts() {
+            if (!selectedSupplier) {
+                showSection('suppliers');
+                return '';
+            }
+
+            const { data: products, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('supplier_id', selectedSupplier.id)
+                .order('name');
+
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading products: ${error.message}</div>`;
+            }
+
             const canModify = currentUser.role === 'super_admin';
 
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('products')}</h2>
-                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                        <h2 class="text-xl font-bold">${selectedSupplier.name}</h2>
+                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
                     </div>
                     ${canModify ? `<button onclick="showProductForm()" class="btn-primary w-full mb-4">${t('addProduct')}</button>` : ''}
                     <div class="space-y-2">
-                        ${products.map(product => {
-                            const supplier = suppliers.find(s => s.id === product.supplierId);
-                            return `
-                                <div class="bg-white p-3 rounded shadow">
-                                    <div class="font-semibold">${product.name}</div>
-                                    <div class="text-sm text-gray-600">${t('unit')}: ${product.unit}</div>
-                                    <div class="text-sm text-gray-600">${t('supplier')}: ${supplier ? supplier.name : 'N/A'}</div>
-                                    ${canModify ? `
-                                        <div class="flex gap-2 mt-2">
-                                            <button onclick="editProduct(${product.id})" class="btn-primary text-sm">${t('edit')}</button>
-                                            <button onclick="deleteProduct(${product.id})" class="btn-danger text-sm">${t('delete')}</button>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `;
-                        }).join('')}
+                        ${products.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noProducts')}</div>` : ''}
+                        ${products.map(product => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${product.name}</div>
+                                <div class="text-sm text-gray-600">${t('unit')}: ${product.unit}</div>
+                                ${canModify ? `
+                                    <div class="flex gap-2 mt-2">
+                                        <button onclick="editProduct('${product.id}')" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                        <button onclick="deleteProduct('${product.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
         }
 
-        function renderOrders() {
-            const orders = getVisibleOrders(currentUser);
-            const companies = store.get('companies');
+        async function renderNewOrder() {
+            if (!selectedSupplier) {
+                showSection('suppliers');
+                return '';
+            }
+
+            const { data: products, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('supplier_id', selectedSupplier.id)
+                .order('name');
+
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading products: ${error.message}</div>`;
+            }
+
+            if (products.length === 0) {
+                return `
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">${t('createOrder')}</h2>
+                            <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                        </div>
+                        <div class="text-center text-gray-500 py-8">${t('noProducts')}</div>
+                    </div>
+                `;
+            }
+
+            const company = currentUser.companies;
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('createOrder')}</h2>
+                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold text-lg">${company.name}</div>
+                        <div class="text-sm text-gray-600">${company.phone}</div>
+                        <div class="text-sm text-gray-600">${company.address}</div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold">${selectedSupplier.name}</div>
+                    </div>
+
+                    <div class="bg-white rounded shadow overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="text-left py-3 px-4 font-semibold">${t('name')}</th>
+                                    <th class="text-left py-3 px-2 font-semibold w-20">${t('unit')}</th>
+                                    <th class="text-right py-3 px-4 font-semibold w-24">${t('quantity')}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                ${products.map(product => `
+                                    <tr>
+                                        <td class="py-3 px-4">${product.name}</td>
+                                        <td class="py-3 px-2 text-sm">${product.unit}</td>
+                                        <td class="py-3 px-4 text-right">
+                                            <input type="number" 
+                                                id="qty-${product.id}" 
+                                                min="0" 
+                                                class="quantity-input border rounded px-2 py-1"
+                                                placeholder="0">
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="fixed-bottom-bar">
+                    <button onclick="saveNewOrder()" class="btn-success">${t('save')}</button>
+                    <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                </div>
+            `;
+        }
+
+        async function renderOrders() {
+            let query = supabase
+                .from('orders')
+                .select('*, companies(*), suppliers(*)');
+
+            if (currentUser.role === 'staff') {
+                query = query.eq('company_id', currentUser.company_id);
+            } else if (currentUser.role === 'company_admin') {
+                query = query.eq('company_id', currentUser.company_id);
+            }
+
+            const { data: orders, error } = await query.order('created_at', { ascending: false });
+
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading orders: ${error.message}</div>`;
+            }
+
+            const filteredOrders = currentUser.role === 'staff' 
+                ? orders.filter(o => {
+                    if (o.status === 'staff_draft' || o.status === 'pending_admin') return true;
+                    if (o.status === 'confirmed') {
+                        const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+                        return (Date.now() - new Date(o.created_at).getTime()) <= fourteenDays;
+                    }
+                    return false;
+                })
+                : orders;
+
             const statusMap = {
                 staff_draft: t('staffDraft'),
                 pending_admin: t('pendingAdmin'),
@@ -431,32 +430,41 @@
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('orders')}</h2>
-                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                        <h2 class="text-xl font-bold">${currentUser.role === 'staff' ? t('myOrders') : t('allOrders')}</h2>
+                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
                     </div>
-                    ${currentUser.role === 'staff' ? `<button onclick="showOrderForm()" class="btn-primary w-full mb-4">${t('createOrder')}</button>` : ''}
-                    <div class="space-y-2">
-                        ${orders.length === 0 ? `<div class="text-center text-gray-500 py-4">${t('noDataAvailable')}</div>` : ''}
-                        ${orders.map(order => {
-                            const company = companies.find(c => c.id === order.companyId);
-                            const date = new Date(order.createdAt).toLocaleDateString();
+                    <div class="space-y-3">
+                        ${filteredOrders.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noOrders')}</div>` : ''}
+                        ${filteredOrders.map(order => {
+                            const date = new Date(order.created_at).toLocaleDateString();
                             return `
-                                <div class="bg-white p-3 rounded shadow">
-                                    <div class="font-semibold">${t('orderNumber')}${order.id}</div>
-                                    <div class="text-sm text-gray-600">${company ? company.name : 'N/A'}</div>
-                                    <div class="text-sm text-gray-600">${statusMap[order.status]}</div>
-                                    <div class="text-sm text-gray-600">${date}</div>
-                                    <div class="flex gap-2 mt-2">
+                                <div class="bg-white p-4 rounded shadow">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div class="font-semibold">${t('orderNumber')}${order.id.slice(0, 8)}</div>
+                                            <div class="text-sm text-gray-600">${order.companies.name}</div>
+                                            <div class="text-sm text-gray-600">${order.suppliers.name}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-semibold ${
+                                                order.status === 'confirmed' ? 'text-green-600' :
+                                                order.status === 'pending_admin' ? 'text-orange-600' :
+                                                'text-gray-600'
+                                            }">${statusMap[order.status]}</div>
+                                            <div class="text-xs text-gray-500">${date}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2 mt-3">
                                         ${order.status === 'staff_draft' && currentUser.role === 'staff' ? `
-                                            <button onclick="editOrder(${order.id})" class="btn-primary text-sm">${t('edit')}</button>
-                                            <button onclick="deleteOrder(${order.id})" class="btn-danger text-sm">${t('delete')}</button>
-                                            <button onclick="submitOrder(${order.id})" class="btn-success text-sm">${t('submitToAdmin')}</button>
+                                            <button onclick="editOrder('${order.id}')" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                            <button onclick="deleteOrder('${order.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
+                                            <button onclick="submitOrder('${order.id}')" class="btn-success text-sm flex-1">${t('submitToAdmin')}</button>
                                         ` : ''}
                                         ${order.status === 'pending_admin' && (currentUser.role === 'company_admin' || currentUser.role === 'super_admin') ? `
-                                            <button onclick="confirmOrder(${order.id})" class="btn-success text-sm">${t('confirm')}</button>
+                                            <button onclick="confirmOrder('${order.id}')" class="btn-success text-sm flex-1">${t('confirm')}</button>
                                         ` : ''}
-                                        ${order.status === 'confirmed' || (order.status === 'pending_admin' && currentUser.role === 'staff') ? `
-                                            <button onclick="viewOrder(${order.id})" class="btn-primary text-sm">${t('view')}</button>
+                                        ${(order.status === 'confirmed' || (order.status === 'pending_admin' && currentUser.role === 'staff')) ? `
+                                            <button onclick="viewOrder('${order.id}')" class="btn-primary text-sm flex-1">${t('view')}</button>
                                         ` : ''}
                                     </div>
                                 </div>
@@ -467,224 +475,416 @@
             `;
         }
 
-        function showUserForm(userId = null) {
-            const users = store.get('users');
-            const companies = store.get('companies');
-            const user = userId ? users.find(u => u.id === userId) : null;
+        async function renderEditOrder(orderId) {
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .select('*, companies(*), suppliers(*)')
+                .eq('id', orderId)
+                .single();
 
-            const html = `
+            if (orderError || !order) {
+                showSection('orders');
+                return '';
+            }
+
+            const { data: orderItems, error: itemsError } = await supabase
+                .from('order_items')
+                .select('*, products(*)')
+                .eq('order_id', orderId);
+
+            const { data: allProducts, error: productsError } = await supabase
+                .from('products')
+                .select('*')
+                .eq('supplier_id', order.supplier_id)
+                .order('name');
+
+            if (itemsError || productsError) {
+                return `<div class="p-4 text-red-600">Error loading order details</div>`;
+            }
+
+            const quantities = {};
+            orderItems.forEach(item => {
+                quantities[item.product_id] = item.quantity;
+            });
+
+            return `
                 <div class="p-4">
-                    <h2 class="text-xl font-bold mb-4">${user ? t('edit') : t('addUser')}</h2>
-                    <div class="bg-white p-4 rounded shadow space-y-3">
-                        <div>
-                            <label class="block mb-1">${t('username')}</label>
-                            <input type="text" id="userUsername" value="${user ? user.username : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('password')}</label>
-                            <input type="password" id="userPassword" value="${user ? user.password : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('role')}</label>
-                            <select id="userRole" class="w-full border rounded px-3 py-2">
-                                <option value="super_admin" ${user && user.role === 'super_admin' ? 'selected' : ''}>${t('superAdmin')}</option>
-                                <option value="company_admin" ${user && user.role === 'company_admin' ? 'selected' : ''}>${t('companyAdmin')}</option>
-                                <option value="staff" ${user && user.role === 'staff' ? 'selected' : ''}>${t('staff')}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('company')}</label>
-                            <select id="userCompanyId" class="w-full border rounded px-3 py-2">
-                                <option value="">None</option>
-                                ${companies.map(c => `<option value="${c.id}" ${user && user.companyId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="saveUser(${userId})" class="btn-primary flex-1">${t('save')}</button>
-                            <button onclick="showSection('users')" class="btn-secondary flex-1">${t('cancel')}</button>
-                        </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('edit')} ${t('orderNumber')}${order.id.slice(0, 8)}</h2>
+                        <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold text-lg">${order.companies.name}</div>
+                        <div class="text-sm text-gray-600">${order.companies.phone}</div>
+                        <div class="text-sm text-gray-600">${order.companies.address}</div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold">${order.suppliers.name}</div>
+                    </div>
+
+                    <div class="bg-white rounded shadow overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="text-left py-3 px-4 font-semibold">${t('name')}</th>
+                                    <th class="text-left py-3 px-2 font-semibold w-20">${t('unit')}</th>
+                                    <th class="text-right py-3 px-4 font-semibold w-24">${t('quantity')}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                ${allProducts.map(product => `
+                                    <tr>
+                                        <td class="py-3 px-4">${product.name}</td>
+                                        <td class="py-3 px-2 text-sm">${product.unit}</td>
+                                        <td class="py-3 px-4 text-right">
+                                            <input type="number" 
+                                                id="qty-${product.id}" 
+                                                value="${quantities[product.id] || ''}"
+                                                min="0" 
+                                                class="quantity-input border rounded px-2 py-1"
+                                                placeholder="0">
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <input type="hidden" id="editOrderId" value="${orderId}">
+                    <input type="hidden" id="editSupplierId" value="${order.supplier_id}">
+                </div>
+
+                <div class="fixed-bottom-bar">
+                    <button onclick="updateOrder()" class="btn-success">${t('save')}</button>
+                    <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
+                </div>
+            `;
+        }
+
+        async function renderViewOrder(orderId) {
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .select('*, companies(*), suppliers(*)')
+                .eq('id', orderId)
+                .single();
+
+            if (orderError || !order) {
+                showSection('orders');
+                return '';
+            }
+
+            const { data: orderItems, error: itemsError } = await supabase
+                .from('order_items')
+                .select('*, products(*)')
+                .eq('order_id', orderId)
+                .order('products(name)');
+
+            if (itemsError) {
+                return `<div class="p-4 text-red-600">Error loading order details</div>`;
+            }
+
+            const date = new Date(order.created_at).toLocaleDateString();
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('orderNumber')}${order.id.slice(0, 8)}</h2>
+                        <button onclick="showSection('orders')" class="btn-secondary">${t('back')}</button>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold text-lg">${order.companies.name}</div>
+                        <div class="text-sm text-gray-600">${order.companies.phone}</div>
+                        <div class="text-sm text-gray-600">${order.companies.address}</div>
+                        <div class="text-sm text-gray-500 mt-2">${date}</div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold">${order.suppliers.name}</div>
+                    </div>
+
+                    <div class="bg-white rounded shadow overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="text-left py-3 px-4 font-semibold">${t('name')}</th>
+                                    <th class="text-left py-3 px-2 font-semibold w-20">${t('unit')}</th>
+                                    <th class="text-right py-3 px-4 font-semibold w-24">${t('quantity')}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                ${orderItems.map(item => `
+                                    <tr>
+                                        <td class="py-3 px-4">${item.products.name}</td>
+                                        <td class="py-3 px-2 text-sm">${item.products.unit}</td>
+                                        <td class="py-3 px-4 text-right font-semibold">${item.quantity}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             `;
-            document.getElementById('app').innerHTML = html;
         }
 
-        function saveUser(userId) {
-            const users = store.get('users');
-            const username = document.getElementById('userUsername').value;
-            const password = document.getElementById('userPassword').value;
-            const role = document.getElementById('userRole').value;
-            const companyId = document.getElementById('userCompanyId').value;
-
-            if (userId) {
-                const index = users.findIndex(u => u.id === userId);
-                users[index] = {
-                    id: userId,
-                    username,
-                    password,
-                    role,
-                    companyId: companyId ? parseInt(companyId) : null
-                };
-            } else {
-                users.push({
-                    id: store.getNextId('user'),
-                    username,
-                    password,
-                    role,
-                    companyId: companyId ? parseInt(companyId) : null
-                });
-            }
-            store.set('users', users);
-            showSection('users');
-        }
-
-        function editUser(id) {
-            showUserForm(id);
-        }
-
-        function deleteUser(id) {
-            if (confirm(t('confirmDelete'))) {
-                const users = store.get('users');
-                store.set('users', users.filter(u => u.id !== id));
-                render();
-            }
-        }
-
-        function showCompanyForm(companyId = null) {
-            const companies = store.get('companies');
-            const company = companyId ? companies.find(c => c.id === companyId) : null;
-
-            const html = `
+        async function renderAdmin() {
+            return `
                 <div class="p-4">
-                    <h2 class="text-xl font-bold mb-4">${company ? t('edit') : t('addCompany')}</h2>
-                    <div class="bg-white p-4 rounded shadow space-y-3">
-                        <div>
-                            <label class="block mb-1">${t('name')}</label>
-                            <input type="text" id="companyName" value="${company ? company.name : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('phone')}</label>
-                            <input type="text" id="companyPhone" value="${company ? company.phone : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('address')}</label>
-                            <input type="text" id="companyAddress" value="${company ? company.address : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="saveCompany(${companyId})" class="btn-primary flex-1">${t('save')}</button>
-                            <button onclick="showSection('companies')" class="btn-secondary flex-1">${t('cancel')}</button>
-                        </div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">${t('admin')}</h2>
+                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
+                    </div>
+                    <div class="space-y-2">
+                        <button onclick="showSection('adminUsers')" class="btn-primary w-full">${t('users')}</button>
+                        <button onclick="showSection('adminCompanies')" class="btn-primary w-full">${t('companies')}</button>
+                        <button onclick="showSection('adminSuppliers')" class="btn-primary w-full">${t('suppliers')}</button>
                     </div>
                 </div>
             `;
-            document.getElementById('app').innerHTML = html;
         }
 
-        function saveCompany(companyId) {
-            const companies = store.get('companies');
-            const name = document.getElementById('companyName').value;
-            const phone = document.getElementById('companyPhone').value;
-            const address = document.getElementById('companyAddress').value;
+        async function renderAdminUsers() {
+            const { data: users, error: usersError } = await supabase
+                .from('users')
+                .select('*, companies(name)')
+                .order('username');
 
-            if (companyId) {
-                const index = companies.findIndex(c => c.id === companyId);
-                companies[index] = { id: companyId, name, phone, address };
-            } else {
-                companies.push({
-                    id: store.getNextId('company'),
-                    name,
-                    phone,
-                    address
-                });
+            const { data: companies, error: companiesError } = await supabase
+                .from('companies')
+                .select('*')
+                .order('name');
+
+            if (usersError || companiesError) {
+                return `<div class="p-4 text-red-600">Error loading data</div>`;
             }
-            store.set('companies', companies);
-            showSection('companies');
-        }
 
-        function editCompany(id) {
-            showCompanyForm(id);
-        }
+            const roleMap = {
+                super_admin: t('superAdmin'),
+                company_admin: t('companyAdmin'),
+                staff: t('staff')
+            };
 
-        function deleteCompany(id) {
-            if (confirm(t('confirmDelete'))) {
-                const companies = store.get('companies');
-                store.set('companies', companies.filter(c => c.id !== id));
-                render();
+            if (editingItem) {
+                const user = editingItem.id ? users.find(u => u.id === editingItem.id) : null;
+                return `
+                    <div class="p-4">
+                        <h2 class="text-xl font-bold mb-4">${user ? t('edit') : t('addUser')}</h2>
+                        <div class="bg-white p-4 rounded shadow space-y-3">
+                            <div>
+                                <label class="block mb-1">${t('username')}</label>
+                                <input type="text" id="itemUsername" value="${user ? user.username : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('password')}</label>
+                                <input type="password" id="itemPassword" value="${user ? user.password : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('role')}</label>
+                                <select id="itemRole" class="w-full border rounded px-3 py-2">
+                                    <option value="super_admin" ${user && user.role === 'super_admin' ? 'selected' : ''}>${t('superAdmin')}</option>
+                                    <option value="company_admin" ${user && user.role === 'company_admin' ? 'selected' : ''}>${t('companyAdmin')}</option>
+                                    <option value="staff" ${user && user.role === 'staff' ? 'selected' : ''}>${t('staff')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('company')}</label>
+                                <select id="itemCompanyId" class="w-full border rounded px-3 py-2">
+                                    <option value="">None</option>
+                                    ${companies.map(c => `<option value="${c.id}" ${user && user.company_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="saveUser()" class="btn-primary flex-1">${t('save')}</button>
+                                <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
-        }
 
-        function showSupplierForm(supplierId = null) {
-            const suppliers = store.get('suppliers');
-            const supplier = supplierId ? suppliers.find(s => s.id === supplierId) : null;
-
-            const html = `
+            return `
                 <div class="p-4">
-                    <h2 class="text-xl font-bold mb-4">${supplier ? t('edit') : t('addSupplier')}</h2>
-                    <div class="bg-white p-4 rounded shadow space-y-3">
-                        <div>
-                            <label class="block mb-1">${t('name')}</label>
-                            <input type="text" id="supplierName" value="${supplier ? supplier.name : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('contactPerson')}</label>
-                            <input type="text" id="supplierContact" value="${supplier ? supplier.contactPerson : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('phone')}</label>
-                            <input type="text" id="supplierPhone" value="${supplier ? supplier.phone : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="saveSupplier(${supplierId})" class="btn-primary flex-1">${t('save')}</button>
-                            <button onclick="showSection('suppliers')" class="btn-secondary flex-1">${t('cancel')}</button>
-                        </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('users')}</h2>
+                        <button onclick="showSection('admin')" class="btn-secondary">${t('back')}</button>
+                    </div>
+                    <button onclick="editingItem = {}; render()" class="btn-primary w-full mb-4">${t('addUser')}</button>
+                    <div class="space-y-2">
+                        ${users.map(user => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${user.username}</div>
+                                <div class="text-sm text-gray-600">${roleMap[user.role]}</div>
+                                ${user.companies ? `<div class="text-sm text-gray-600">${user.companies.name}</div>` : ''}
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="editingItem = {id: '${user.id}'}; render()" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                    <button onclick="deleteUser('${user.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
-            document.getElementById('app').innerHTML = html;
         }
 
-        function saveSupplier(supplierId) {
-            const suppliers = store.get('suppliers');
-            const name = document.getElementById('supplierName').value;
-            const contactPerson = document.getElementById('supplierContact').value;
-            const phone = document.getElementById('supplierPhone').value;
+        async function renderAdminCompanies() {
+            const { data: companies, error } = await supabase
+                .from('companies')
+                .select('*')
+                .order('name');
 
-            if (supplierId) {
-                const index = suppliers.findIndex(s => s.id === supplierId);
-                suppliers[index] = { id: supplierId, name, contactPerson, phone };
-            } else {
-                suppliers.push({
-                    id: store.getNextId('supplier'),
-                    name,
-                    contactPerson,
-                    phone
-                });
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading companies</div>`;
             }
-            store.set('suppliers', suppliers);
-            showSection('suppliers');
-        }
 
-        function editSupplier(id) {
-            showSupplierForm(id);
-        }
-
-        function deleteSupplier(id) {
-            if (confirm(t('confirmDelete'))) {
-                const suppliers = store.get('suppliers');
-                store.set('suppliers', suppliers.filter(s => s.id !== id));
-                render();
+            if (editingItem) {
+                const company = editingItem.id ? companies.find(c => c.id === editingItem.id) : null;
+                return `
+                    <div class="p-4">
+                        <h2 class="text-xl font-bold mb-4">${company ? t('edit') : t('addCompany')}</h2>
+                        <div class="bg-white p-4 rounded shadow space-y-3">
+                            <div>
+                                <label class="block mb-1">${t('name')}</label>
+                                <input type="text" id="itemName" value="${company ? company.name : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('phone')}</label>
+                                <input type="text" id="itemPhone" value="${company ? company.phone : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('address')}</label>
+                                <input type="text" id="itemAddress" value="${company ? company.address : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="saveCompany()" class="btn-primary flex-1">${t('save')}</button>
+                                <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('companies')}</h2>
+                        <button onclick="showSection('admin')" class="btn-secondary">${t('back')}</button>
+                    </div>
+                    <button onclick="editingItem = {}; render()" class="btn-primary w-full mb-4">${t('addCompany')}</button>
+                    <div class="space-y-2">
+                        ${companies.map(company => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${company.name}</div>
+                                <div class="text-sm text-gray-600">${company.phone}</div>
+                                <div class="text-sm text-gray-600">${company.address}</div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="editingItem = {id: '${company.id}'}; render()" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                    <button onclick="deleteCompany('${company.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
 
-        function showProductForm(productId = null) {
-            const products = store.get('products');
-            const suppliers = store.get('suppliers');
-            const product = productId ? products.find(p => p.id === productId) : null;
+        async function renderAdminSuppliers() {
+            const { data: suppliers, error } = await supabase
+                .from('suppliers')
+                .select('*')
+                .order('name');
 
-            const html = `
+            if (error) {
+                return `<div class="p-4 text-red-600">Error loading suppliers</div>`;
+            }
+
+            if (editingItem) {
+                const supplier = editingItem.id ? suppliers.find(s => s.id === editingItem.id) : null;
+                return `
+                    <div class="p-4">
+                        <h2 class="text-xl font-bold mb-4">${supplier ? t('edit') : t('addSupplier')}</h2>
+                        <div class="bg-white p-4 rounded shadow space-y-3">
+                            <div>
+                                <label class="block mb-1">${t('name')}</label>
+                                <input type="text" id="itemName" value="${supplier ? supplier.name : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('contactPerson')}</label>
+                                <input type="text" id="itemContactPerson" value="${supplier ? supplier.contact_person : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('phone')}</label>
+                                <input type="text" id="itemPhone" value="${supplier ? supplier.phone : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="saveSupplier()" class="btn-primary flex-1">${t('save')}</button>
+                                <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('suppliers')}</h2>
+                        <button onclick="showSection('admin')" class="btn-secondary">${t('back')}</button>
+                    </div>
+                    <button onclick="editingItem = {}; render()" class="btn-primary w-full mb-4">${t('addSupplier')}</button>
+                    <div class="space-y-2">
+                        ${suppliers.map(supplier => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${supplier.name}</div>
+                                <div class="text-sm text-gray-600">${t('contactPerson')}: ${supplier.contact_person}</div>
+                                <div class="text-sm text-gray-600">${supplier.phone}</div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="editingItem = {id: '${supplier.id}'}; render()" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                    <button onclick="deleteSupplier('${supplier.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showProductForm() {
+            editingItem = {};
+            render();
+        }
+
+        async function editProduct(productId) {
+            editingItem = { id: productId };
+            render();
+        }
+
+        async function renderProductForm() {
+            if (!selectedSupplier || !editingItem) {
+                showSection('products', selectedSupplier);
+                return '';
+            }
+
+            let product = null;
+            if (editingItem.id) {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('id', editingItem.id)
+                    .single();
+                
+                if (!error) product = data;
+            }
+
+            return `
                 <div class="p-4">
                     <h2 class="text-xl font-bold mb-4">${product ? t('edit') : t('addProduct')}</h2>
                     <div class="bg-white p-4 rounded shadow space-y-3">
+                        <div>
+                            <label class="block mb-1">${t('supplier')}</label>
+                            <input type="text" value="${selectedSupplier.name}" disabled class="w-full border rounded px-3 py-2 bg-gray-50">
+                        </div>
                         <div>
                             <label class="block mb-1">${t('name')}</label>
                             <input type="text" id="productName" value="${product ? product.name : ''}" class="w-full border rounded px-3 py-2">
@@ -693,139 +893,67 @@
                             <label class="block mb-1">${t('unit')}</label>
                             <input type="text" id="productUnit" value="${product ? product.unit : ''}" class="w-full border rounded px-3 py-2">
                         </div>
-                        <div>
-                            <label class="block mb-1">${t('supplier')}</label>
-                            <select id="productSupplierId" class="w-full border rounded px-3 py-2">
-                                ${suppliers.map(s => `<option value="${s.id}" ${product && product.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-                            </select>
-                        </div>
                         <div class="flex gap-2">
-                            <button onclick="saveProduct(${productId})" class="btn-primary flex-1">${t('save')}</button>
-                            <button onclick="showSection('products')" class="btn-secondary flex-1">${t('cancel')}</button>
+                            <button onclick="saveProduct()" class="btn-primary flex-1">${t('save')}</button>
+                            <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
                         </div>
                     </div>
                 </div>
             `;
-            document.getElementById('app').innerHTML = html;
         }
 
-        function saveProduct(productId) {
-            const products = store.get('products');
+        async function saveProduct() {
             const name = document.getElementById('productName').value;
             const unit = document.getElementById('productUnit').value;
-            const supplierId = parseInt(document.getElementById('productSupplierId').value);
 
-            if (productId) {
-                const index = products.findIndex(p => p.id === productId);
-                products[index] = { id: productId, name, unit, supplierId };
+            if (!name || !unit) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            if (editingItem.id) {
+                await supabase
+                    .from('products')
+                    .update({ name, unit })
+                    .eq('id', editingItem.id);
             } else {
-                products.push({
-                    id: store.getNextId('product'),
-                    name,
-                    unit,
-                    supplierId
-                });
+                await supabase
+                    .from('products')
+                    .insert({
+                        name,
+                        unit,
+                        supplier_id: selectedSupplier.id
+                    });
             }
-            store.set('products', products);
-            showSection('products');
+
+            editingItem = null;
+            render();
         }
 
-        function editProduct(id) {
-            showProductForm(id);
+        async function deleteProduct(productId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            await supabase
+                .from('products')
+                .delete()
+                .eq('id', productId);
+
+            render();
         }
 
-        function deleteProduct(id) {
-            if (confirm(t('confirmDelete'))) {
-                const products = store.get('products');
-                store.set('products', products.filter(p => p.id !== id));
-                render();
-            }
-        }
+        async function saveNewOrder() {
+            const { data: products } = await supabase
+                .from('products')
+                .select('*')
+                .eq('supplier_id', selectedSupplier.id);
 
-        function showOrderForm(orderId = null) {
-            const orders = store.get('orders') || [];
-            const products = store.get('products');
-            const suppliers = store.get('suppliers');
-            const companies = store.get('companies');
-            const order = orderId ? orders.find(o => o.id === orderId) : null;
-
-            const company = companies.find(c => c.id === currentUser.companyId);
-
-            const supplierGroups = {};
-            products.forEach(product => {
-                if (!supplierGroups[product.supplierId]) {
-                    supplierGroups[product.supplierId] = [];
-                }
-                supplierGroups[product.supplierId].push(product);
-            });
-
-            const html = `
-                <div class="p-4">
-                    <h2 class="text-xl font-bold mb-4">${order ? t('edit') : t('createOrder')}</h2>
-                    <div class="bg-white p-4 rounded shadow mb-4">
-                        <div class="font-semibold">${company.name}</div>
-                        <div class="text-sm text-gray-600">${company.phone}</div>
-                        <div class="text-sm text-gray-600">${company.address}</div>
-                    </div>
-                    <div class="space-y-4">
-                        ${Object.keys(supplierGroups).map(supplierId => {
-                            const supplier = suppliers.find(s => s.id === parseInt(supplierId));
-                            const productsInGroup = supplierGroups[supplierId];
-                            return `
-                                <div class="bg-white p-4 rounded shadow">
-                                    <div class="font-semibold mb-3">${supplier.name}</div>
-                                    <table class="w-full">
-                                        <thead>
-                                            <tr class="border-b">
-                                                <th class="text-left py-2">${t('name')}</th>
-                                                <th class="text-left py-2">${t('unit')}</th>
-                                                <th class="text-right py-2 w-24">${t('quantity')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${productsInGroup.map(product => {
-                                                const qty = order ? (order.items.find(i => i.productId === product.id)?.quantity || '') : '';
-                                                return `
-                                                    <tr class="border-b">
-                                                        <td class="py-2">${product.name}</td>
-                                                        <td class="py-2">${product.unit}</td>
-                                                        <td class="py-2 text-right">
-                                                            <input type="number" 
-                                                                id="qty-${product.id}" 
-                                                                value="${qty}" 
-                                                                min="0" 
-                                                                class="w-20 border rounded px-2 py-1 text-right"
-                                                                placeholder="0">
-                                                        </td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <div class="flex gap-2 mt-4">
-                        <button onclick="saveOrder(${orderId})" class="btn-primary flex-1">${t('save')}</button>
-                        <button onclick="showSection('orders')" class="btn-secondary flex-1">${t('cancel')}</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('app').innerHTML = html;
-        }
-
-        function saveOrder(orderId) {
-            const orders = store.get('orders') || [];
-            const products = store.get('products');
             const items = [];
-
             products.forEach(product => {
                 const qtyInput = document.getElementById(`qty-${product.id}`);
-                const qty = parseInt(qtyInput.value) || 0;
+                const qty = parseInt(qtyInput?.value) || 0;
                 if (qty > 0) {
                     items.push({
-                        productId: product.id,
+                        product_id: product.id,
                         quantity: qty
                     });
                 }
@@ -836,134 +964,227 @@
                 return;
             }
 
-            if (orderId) {
-                const index = orders.findIndex(o => o.id === orderId);
-                orders[index].items = items;
-            } else {
-                orders.push({
-                    id: store.getNextId('order'),
-                    companyId: currentUser.companyId,
-                    status: 'staff_draft',
-                    items,
-                    createdAt: Date.now()
-                });
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    company_id: currentUser.company_id,
+                    supplier_id: selectedSupplier.id,
+                    status: 'staff_draft'
+                })
+                .select()
+                .single();
+
+            if (orderError) {
+                alert('Error creating order');
+                return;
             }
-            store.set('orders', orders);
+
+            const orderItems = items.map(item => ({
+                order_id: order.id,
+                ...item
+            }));
+
+            await supabase
+                .from('order_items')
+                .insert(orderItems);
+
             showSection('orders');
         }
 
-        function editOrder(id) {
-            showOrderForm(id);
-        }
-
-        function deleteOrder(id) {
-            if (confirm(t('confirmDelete'))) {
-                const orders = store.get('orders') || [];
-                store.set('orders', orders.filter(o => o.id !== id));
-                render();
-            }
-        }
-
-        function submitOrder(id) {
-            const orders = store.get('orders') || [];
-            const order = orders.find(o => o.id === id);
-            if (order) {
-                order.status = 'pending_admin';
-                store.set('orders', orders);
-                render();
-            }
-        }
-
-        function confirmOrder(id) {
-            const orders = store.get('orders') || [];
-            const order = orders.find(o => o.id === id);
-            if (order) {
-                order.status = 'confirmed';
-                store.set('orders', orders);
-                render();
-            }
-        }
-
-        function viewOrder(id) {
-            const orders = store.get('orders') || [];
-            const products = store.get('products');
-            const suppliers = store.get('suppliers');
-            const companies = store.get('companies');
-            const order = orders.find(o => o.id === id);
-            
-            if (!order) return;
-
-            const company = companies.find(c => c.id === order.companyId);
-            const date = new Date(order.createdAt).toLocaleDateString();
-
-            const supplierGroups = {};
-            order.items.forEach(item => {
-                const product = products.find(p => p.id === item.productId);
-                if (!product) return;
-                
-                if (!supplierGroups[product.supplierId]) {
-                    supplierGroups[product.supplierId] = [];
-                }
-                supplierGroups[product.supplierId].push({
-                    product,
-                    quantity: item.quantity
-                });
-            });
-
-            const html = `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('orderNumber')}${order.id}</h2>
-                        <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
-                    </div>
-                    <div class="bg-white p-4 rounded shadow mb-4">
-                        <div class="font-semibold">${company.name}</div>
-                        <div class="text-sm text-gray-600">${company.phone}</div>
-                        <div class="text-sm text-gray-600">${company.address}</div>
-                        <div class="text-sm text-gray-600 mt-2">${date}</div>
-                    </div>
-                    <div class="space-y-4">
-                        ${Object.keys(supplierGroups).map(supplierId => {
-                            const supplier = suppliers.find(s => s.id === parseInt(supplierId));
-                            const items = supplierGroups[supplierId];
-                            return `
-                                <div class="bg-white p-4 rounded shadow">
-                                    <div class="font-semibold mb-3">${supplier.name}</div>
-                                    <table class="w-full">
-                                        <thead>
-                                            <tr class="border-b">
-                                                <th class="text-left py-2">${t('name')}</th>
-                                                <th class="text-left py-2">${t('unit')}</th>
-                                                <th class="text-right py-2 w-24">${t('quantity')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${items.map(item => `
-                                                <tr class="border-b">
-                                                    <td class="py-2">${item.product.name}</td>
-                                                    <td class="py-2">${item.product.unit}</td>
-                                                    <td class="py-2 text-right">${item.quantity}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-            document.getElementById('app').innerHTML = html;
-        }
-
-        let currentSection = 'dashboard';
-
-        function showSection(section) {
-            currentSection = section;
+        async function editOrder(orderId) {
+            currentSection = 'editOrder';
+            editingItem = { id: orderId };
             render();
         }
 
-        function render() {
+        async function updateOrder() {
+            const orderId = document.getElementById('editOrderId').value;
+            const supplierId = document.getElementById('editSupplierId').value;
+
+            const { data: products } = await supabase
+                .from('products')
+                .select('*')
+                .eq('supplier_id', supplierId);
+
+            const items = [];
+            products.forEach(product => {
+                const qtyInput = document.getElementById(`qty-${product.id}`);
+                const qty = parseInt(qtyInput?.value) || 0;
+                if (qty > 0) {
+                    items.push({
+                        product_id: product.id,
+                        quantity: qty
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert(t('quantityRequired'));
+                return;
+            }
+
+            await supabase
+                .from('order_items')
+                .delete()
+                .eq('order_id', orderId);
+
+            const orderItems = items.map(item => ({
+                order_id: orderId,
+                ...item
+            }));
+
+            await supabase
+                .from('order_items')
+                .insert(orderItems);
+
+            showSection('orders');
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+
+            render();
+        }
+
+        async function submitOrder(orderId) {
+            await supabase
+                .from('orders')
+                .update({ status: 'pending_admin' })
+                .eq('id', orderId);
+
+            render();
+        }
+
+        async function confirmOrder(orderId) {
+            await supabase
+                .from('orders')
+                .update({ status: 'confirmed' })
+                .eq('id', orderId);
+
+            render();
+        }
+
+        async function viewOrder(orderId) {
+            currentSection = 'viewOrder';
+            editingItem = { id: orderId };
+            render();
+        }
+
+        async function saveUser() {
+            const username = document.getElementById('itemUsername').value;
+            const password = document.getElementById('itemPassword').value;
+            const role = document.getElementById('itemRole').value;
+            const companyId = document.getElementById('itemCompanyId').value || null;
+
+            if (!username || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            if (editingItem.id) {
+                await supabase
+                    .from('users')
+                    .update({ username, password, role, company_id: companyId })
+                    .eq('id', editingItem.id);
+            } else {
+                await supabase
+                    .from('users')
+                    .insert({ username, password, role, company_id: companyId });
+            }
+
+            editingItem = null;
+            render();
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            render();
+        }
+
+        async function saveCompany() {
+            const name = document.getElementById('itemName').value;
+            const phone = document.getElementById('itemPhone').value;
+            const address = document.getElementById('itemAddress').value;
+
+            if (!name || !phone || !address) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            if (editingItem.id) {
+                await supabase
+                    .from('companies')
+                    .update({ name, phone, address })
+                    .eq('id', editingItem.id);
+            } else {
+                await supabase
+                    .from('companies')
+                    .insert({ name, phone, address });
+            }
+
+            editingItem = null;
+            render();
+        }
+
+        async function deleteCompany(companyId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            await supabase
+                .from('companies')
+                .delete()
+                .eq('id', companyId);
+
+            render();
+        }
+
+        async function saveSupplier() {
+            const name = document.getElementById('itemName').value;
+            const contactPerson = document.getElementById('itemContactPerson').value;
+            const phone = document.getElementById('itemPhone').value;
+
+            if (!name || !contactPerson || !phone) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            if (editingItem.id) {
+                await supabase
+                    .from('suppliers')
+                    .update({ name, contact_person: contactPerson, phone })
+                    .eq('id', editingItem.id);
+            } else {
+                await supabase
+                    .from('suppliers')
+                    .insert({ name, contact_person: contactPerson, phone });
+            }
+
+            editingItem = null;
+            render();
+        }
+
+        async function deleteSupplier(supplierId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            await supabase
+                .from('suppliers')
+                .delete()
+                .eq('id', supplierId);
+
+            render();
+        }
+
+        async function render() {
             const app = document.getElementById('app');
             
             if (!currentUser) {
@@ -971,28 +1192,48 @@
                 return;
             }
 
+            let content = '';
+            
             switch (currentSection) {
-                case 'dashboard':
-                    app.innerHTML = renderDashboard();
-                    break;
-                case 'users':
-                    app.innerHTML = renderUsers();
-                    break;
-                case 'companies':
-                    app.innerHTML = renderCompanies();
-                    break;
                 case 'suppliers':
-                    app.innerHTML = renderSuppliers();
+                    content = await renderSuppliersList();
                     break;
                 case 'products':
-                    app.innerHTML = renderProducts();
+                    if (editingItem) {
+                        content = await renderProductForm();
+                    } else {
+                        content = await renderProducts();
+                    }
+                    break;
+                case 'newOrder':
+                    content = await renderNewOrder();
                     break;
                 case 'orders':
-                    app.innerHTML = renderOrders();
+                    content = await renderOrders();
+                    break;
+                case 'editOrder':
+                    content = await renderEditOrder(editingItem.id);
+                    break;
+                case 'viewOrder':
+                    content = await renderViewOrder(editingItem.id);
+                    break;
+                case 'admin':
+                    content = await renderAdmin();
+                    break;
+                case 'adminUsers':
+                    content = await renderAdminUsers();
+                    break;
+                case 'adminCompanies':
+                    content = await renderAdminCompanies();
+                    break;
+                case 'adminSuppliers':
+                    content = await renderAdminSuppliers();
                     break;
                 default:
-                    app.innerHTML = renderDashboard();
+                    content = await renderSuppliersList();
             }
+            
+            app.innerHTML = content;
         }
 
         function handleLogin() {
@@ -1001,7 +1242,12 @@
             login(username, password);
         }
 
-        document.addEventListener('DOMContentLoaded', render);
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!SUPABASE_URL.includes('supabase.co')) {
+                alert('Please configure your Supabase credentials in the code!');
+            }
+            render();
+        });
     </script>
 </body>
 </html>
