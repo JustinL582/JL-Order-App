@@ -277,7 +277,7 @@
                         <h1 class="text-2xl font-bold">${t('suppliers')}</h1>
                         <div class="flex gap-2 items-center">
                             ${isAdmin ? `<button onclick="showSection('admin')" class="btn-secondary text-sm">${t('admin')}</button>` : ''}
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                             <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
