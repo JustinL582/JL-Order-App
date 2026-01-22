@@ -11,7 +11,7 @@
             font-family: system-ui, -apple-system, sans-serif;
             padding-bottom: 80px;
         }
-        .btn-primary { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700; }
+        .btn-primary { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400; }
         .btn-secondary { @apply bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700; }
         .btn-danger { @apply bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700; }
         .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700; }
@@ -26,6 +26,7 @@
             display: flex;
             gap: 8px;
             z-index: 50;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         .fixed-bottom-bar button {
             flex: 1;
@@ -34,15 +35,27 @@
             width: 80px;
             text-align: right;
         }
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div id="app"></div>
 
     <script>
-        // CONFIGURATION - Replace with your Supabase credentials
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        const SUPABASE_URL = 'https://jskwaqyxbdmnwtxfwngf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impza3dhcXl4YmRtbnd0eGZ3bmdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0OTcxNDgsImV4cCI6MjA1MzA3MzE0OH0.sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -55,8 +68,7 @@
                 suppliers: 'Suppliers',
                 manageProducts: 'Manage Products',
                 newOrder: 'New Order',
-                myOrders: 'My Orders',
-                allOrders: 'All Orders',
+                orderHistory: 'Order History',
                 edit: 'Edit',
                 delete: 'Delete',
                 confirm: 'Confirm',
@@ -88,13 +100,15 @@
                 admin: 'Admin',
                 users: 'Users',
                 companies: 'Companies',
+                allSuppliers: 'All Suppliers',
                 addUser: 'Add User',
                 addCompany: 'Add Company',
                 addSupplier: 'Add Supplier',
                 role: 'Role',
                 superAdmin: 'Super Admin',
                 companyAdmin: 'Company Admin',
-                staff: 'Staff'
+                staff: 'Staff',
+                date: 'Date'
             },
             zh: {
                 login: '登录',
@@ -104,8 +118,7 @@
                 suppliers: '供应商',
                 manageProducts: '管理产品',
                 newOrder: '新订单',
-                myOrders: '我的订单',
-                allOrders: '所有订单',
+                orderHistory: '订单历史',
                 edit: '编辑',
                 delete: '删除',
                 confirm: '确认',
@@ -137,13 +150,15 @@
                 admin: '管理',
                 users: '用户',
                 companies: '公司',
+                allSuppliers: '所有供应商',
                 addUser: '添加用户',
                 addCompany: '添加公司',
                 addSupplier: '添加供应商',
                 role: '角色',
                 superAdmin: '超级管理员',
                 companyAdmin: '公司管理员',
-                staff: '员工'
+                staff: '员工',
+                date: '日期'
             }
         };
 
@@ -243,7 +258,6 @@
                         <h1 class="text-2xl font-bold">${t('suppliers')}</h1>
                         <div class="flex gap-2 items-center">
                             ${isAdmin ? `<button onclick="showSection('admin')" class="btn-secondary text-sm">${t('admin')}</button>` : ''}
-                            <button onclick="showSection('orders')" class="btn-primary text-sm">${currentUser.role === 'staff' ? t('myOrders') : t('allOrders')}</button>
                             <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
@@ -255,14 +269,88 @@
                             <div class="bg-white p-4 rounded shadow">
                                 <div class="font-semibold text-lg mb-1">${supplier.name}</div>
                                 <div class="text-sm text-gray-600 mb-3">${supplier.contact_person} • ${supplier.phone}</div>
-                                <div class="flex gap-2">
-                                    ${isAdmin ? `<button onclick="showSection('products', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-primary flex-1">${t('manageProducts')}</button>` : ''}
-                                    ${currentUser.role === 'staff' ? `<button onclick="showSection('newOrder', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-success flex-1">${t('newOrder')}</button>` : ''}
-                                    ${!isAdmin && currentUser.role !== 'staff' ? `<button onclick="showSection('products', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" class="btn-primary flex-1">${t('manageProducts')}</button>` : ''}
-                                </div>
+                                <button onclick="showSection('supplierDashboard', ${JSON.stringify(supplier).replace(/"/g, '&quot;')})" 
+                                        class="btn-primary w-full">
+                                    ${t('view')}
+                                </button>
                             </div>
                         `).join('')}
                     </div>
+                </div>
+            `;
+        }
+
+        async function renderSupplierDashboard() {
+            if (!selectedSupplier) {
+                showSection('suppliers');
+                return '';
+            }
+
+            const { data: orders, error } = await supabase
+                .from('orders')
+                .select('*, companies(*)')
+                .eq('supplier_id', selectedSupplier.id)
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            const isStaff = currentUser.role === 'staff';
+            const isAdmin = currentUser.role === 'super_admin';
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${selectedSupplier.name}</h2>
+                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
+                    </div>
+
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="text-sm text-gray-600">${t('contactPerson')}: ${selectedSupplier.contact_person}</div>
+                        <div class="text-sm text-gray-600">${selectedSupplier.phone}</div>
+                    </div>
+
+                    <div class="space-y-3 mb-4">
+                        ${isStaff ? `
+                            <button onclick="showSection('newOrder', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
+                                    class="btn-success w-full text-lg py-3">
+                                + ${t('newOrder')}
+                            </button>
+                        ` : ''}
+                        ${isAdmin ? `
+                            <button onclick="showSection('products', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
+                                    class="btn-primary w-full">
+                                ${t('manageProducts')}
+                            </button>
+                        ` : ''}
+                        <button onclick="showSection('orderHistory', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
+                                class="btn-primary w-full">
+                            ${t('orderHistory')}
+                        </button>
+                    </div>
+
+                    ${orders && orders.length > 0 ? `
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold mb-3">Recent Orders</h3>
+                            <div class="space-y-2">
+                                ${orders.slice(0, 3).map(order => {
+                                    const statusMap = {
+                                        staff_draft: t('staffDraft'),
+                                        pending_admin: t('pendingAdmin'),
+                                        confirmed: t('confirmed')
+                                    };
+                                    const date = new Date(order.created_at).toLocaleDateString();
+                                    return `
+                                        <div class="border-b pb-2">
+                                            <div class="flex justify-between items-center">
+                                                <div class="text-sm">${t('orderNumber')}${order.id.slice(0, 8)}</div>
+                                                <div class="text-xs text-gray-500">${date}</div>
+                                            </div>
+                                            <div class="text-xs text-gray-600">${statusMap[order.status]}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
@@ -285,13 +373,47 @@
 
             const canModify = currentUser.role === 'super_admin';
 
+            if (editingItem) {
+                let product = null;
+                if (editingItem.id) {
+                    product = products.find(p => p.id === editingItem.id);
+                }
+
+                return `
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">${product ? t('edit') : t('addProduct')}</h2>
+                            <button onclick="editingItem = null; render()" class="btn-secondary">${t('cancel')}</button>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow space-y-3">
+                            <div>
+                                <label class="block mb-1">${t('supplier')}</label>
+                                <input type="text" value="${selectedSupplier.name}" disabled class="w-full border rounded px-3 py-2 bg-gray-50">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('name')}</label>
+                                <input type="text" id="productName" value="${product ? product.name : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('unit')}</label>
+                                <input type="text" id="productUnit" value="${product ? product.unit : ''}" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="saveProduct()" class="btn-primary flex-1">${t('save')}</button>
+                                <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">${selectedSupplier.name}</h2>
-                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
+                        <button onclick="showSection('supplierDashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" class="btn-secondary">${t('back')}</button>
                     </div>
-                    ${canModify ? `<button onclick="showProductForm()" class="btn-primary w-full mb-4">${t('addProduct')}</button>` : ''}
+                    ${canModify ? `<button onclick="editingItem = {}; render()" class="btn-primary w-full mb-4">${t('addProduct')}</button>` : ''}
                     <div class="space-y-2">
                         ${products.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noProducts')}</div>` : ''}
                         ${products.map(product => `
@@ -300,7 +422,7 @@
                                 <div class="text-sm text-gray-600">${t('unit')}: ${product.unit}</div>
                                 ${canModify ? `
                                     <div class="flex gap-2 mt-2">
-                                        <button onclick="editProduct('${product.id}')" class="btn-primary text-sm flex-1">${t('edit')}</button>
+                                        <button onclick="editingItem = {id: '${product.id}'}; render()" class="btn-primary text-sm flex-1">${t('edit')}</button>
                                         <button onclick="deleteProduct('${product.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
                                     </div>
                                 ` : ''}
@@ -332,7 +454,7 @@
                     <div class="p-4">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-xl font-bold">${t('createOrder')}</h2>
-                            <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                            <button onclick="showSection('supplierDashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" class="btn-secondary">${t('cancel')}</button>
                         </div>
                         <div class="text-center text-gray-500 py-8">${t('noProducts')}</div>
                     </div>
@@ -345,7 +467,7 @@
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">${t('createOrder')}</h2>
-                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                        <button onclick="showSection('supplierDashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" class="btn-secondary">${t('cancel')}</button>
                     </div>
                     
                     <div class="bg-white p-4 rounded shadow mb-4">
@@ -388,15 +510,21 @@
 
                 <div class="fixed-bottom-bar">
                     <button onclick="saveNewOrder()" class="btn-success">${t('save')}</button>
-                    <button onclick="showSection('suppliers')" class="btn-secondary">${t('cancel')}</button>
+                    <button onclick="showSection('supplierDashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" class="btn-secondary">${t('cancel')}</button>
                 </div>
             `;
         }
 
-        async function renderOrders() {
+        async function renderOrderHistory() {
+            if (!selectedSupplier) {
+                showSection('suppliers');
+                return '';
+            }
+
             let query = supabase
                 .from('orders')
-                .select('*, companies(*), suppliers(*)');
+                .select('*, companies(*)')
+                .eq('supplier_id', selectedSupplier.id);
 
             if (currentUser.role === 'staff') {
                 query = query.eq('company_id', currentUser.company_id);
@@ -430,8 +558,8 @@
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${currentUser.role === 'staff' ? t('myOrders') : t('allOrders')}</h2>
-                        <button onclick="showSection('suppliers')" class="btn-secondary">${t('back')}</button>
+                        <h2 class="text-xl font-bold">${t('orderHistory')}</h2>
+                        <button onclick="showSection('supplierDashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" class="btn-secondary">${t('back')}</button>
                     </div>
                     <div class="space-y-3">
                         ${filteredOrders.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noOrders')}</div>` : ''}
@@ -443,7 +571,6 @@
                                         <div>
                                             <div class="font-semibold">${t('orderNumber')}${order.id.slice(0, 8)}</div>
                                             <div class="text-sm text-gray-600">${order.companies.name}</div>
-                                            <div class="text-sm text-gray-600">${order.suppliers.name}</div>
                                         </div>
                                         <div class="text-right">
                                             <div class="text-sm font-semibold ${
@@ -458,7 +585,7 @@
                                         ${order.status === 'staff_draft' && currentUser.role === 'staff' ? `
                                             <button onclick="editOrder('${order.id}')" class="btn-primary text-sm flex-1">${t('edit')}</button>
                                             <button onclick="deleteOrder('${order.id}')" class="btn-danger text-sm flex-1">${t('delete')}</button>
-                                            <button onclick="submitOrder('${order.id}')" class="btn-success text-sm flex-1">${t('submitToAdmin')}</button>
+                                            <button onclick="submitOrder('${order.id}')" class="btn-success text-sm flex-1">${t('confirm')}</button>
                                         ` : ''}
                                         ${order.status === 'pending_admin' && (currentUser.role === 'company_admin' || currentUser.role === 'super_admin') ? `
                                             <button onclick="confirmOrder('${order.id}')" class="btn-success text-sm flex-1">${t('confirm')}</button>
@@ -483,7 +610,7 @@
                 .single();
 
             if (orderError || !order) {
-                showSection('orders');
+                showSection('orderHistory', selectedSupplier);
                 return '';
             }
 
@@ -507,11 +634,13 @@
                 quantities[item.product_id] = item.quantity;
             });
 
+            selectedSupplier = order.suppliers;
+
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">${t('edit')} ${t('orderNumber')}${order.id.slice(0, 8)}</h2>
-                        <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
+                        <button onclick="showSection('orderHistory', ${JSON.stringify(order.suppliers).replace(/"/g, '&quot;')})" class="btn-secondary">${t('cancel')}</button>
                     </div>
                     
                     <div class="bg-white p-4 rounded shadow mb-4">
@@ -558,7 +687,8 @@
 
                 <div class="fixed-bottom-bar">
                     <button onclick="updateOrder()" class="btn-success">${t('save')}</button>
-                    <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
+                    <button onclick="deleteOrder('${orderId}')" class="btn-danger">${t('delete')}</button>
+                    <button onclick="showSection('orderHistory', ${JSON.stringify(order.suppliers).replace(/"/g, '&quot;')})" class="btn-secondary">${t('cancel')}</button>
                 </div>
             `;
         }
@@ -571,34 +701,34 @@
                 .single();
 
             if (orderError || !order) {
-                showSection('orders');
+                showSection('orderHistory', selectedSupplier);
                 return '';
             }
 
             const { data: orderItems, error: itemsError } = await supabase
                 .from('order_items')
                 .select('*, products(*)')
-                .eq('order_id', orderId)
-                .order('products(name)');
+                .eq('order_id', orderId);
 
             if (itemsError) {
                 return `<div class="p-4 text-red-600">Error loading order details</div>`;
             }
 
             const date = new Date(order.created_at).toLocaleDateString();
+            selectedSupplier = order.suppliers;
 
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">${t('orderNumber')}${order.id.slice(0, 8)}</h2>
-                        <button onclick="showSection('orders')" class="btn-secondary">${t('back')}</button>
+                        <button onclick="showSection('orderHistory', ${JSON.stringify(order.suppliers).replace(/"/g, '&quot;')})" class="btn-secondary">${t('back')}</button>
                     </div>
                     
                     <div class="bg-white p-4 rounded shadow mb-4">
                         <div class="font-semibold text-lg">${order.companies.name}</div>
                         <div class="text-sm text-gray-600">${order.companies.phone}</div>
                         <div class="text-sm text-gray-600">${order.companies.address}</div>
-                        <div class="text-sm text-gray-500 mt-2">${date}</div>
+                        <div class="text-sm text-gray-500 mt-2">${t('date')}: ${date}</div>
                     </div>
 
                     <div class="bg-white p-4 rounded shadow mb-4">
@@ -639,7 +769,7 @@
                     <div class="space-y-2">
                         <button onclick="showSection('adminUsers')" class="btn-primary w-full">${t('users')}</button>
                         <button onclick="showSection('adminCompanies')" class="btn-primary w-full">${t('companies')}</button>
-                        <button onclick="showSection('adminSuppliers')" class="btn-primary w-full">${t('suppliers')}</button>
+                        <button onclick="showSection('adminSuppliers')" class="btn-primary w-full">${t('allSuppliers')}</button>
                     </div>
                 </div>
             `;
@@ -829,7 +959,7 @@
             return `
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${t('suppliers')}</h2>
+                        <h2 class="text-xl font-bold">${t('allSuppliers')}</h2>
                         <button onclick="showSection('admin')" class="btn-secondary">${t('back')}</button>
                     </div>
                     <button onclick="editingItem = {}; render()" class="btn-primary w-full mb-4">${t('addSupplier')}</button>
@@ -845,58 +975,6 @@
                                 </div>
                             </div>
                         `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function showProductForm() {
-            editingItem = {};
-            render();
-        }
-
-        async function editProduct(productId) {
-            editingItem = { id: productId };
-            render();
-        }
-
-        async function renderProductForm() {
-            if (!selectedSupplier || !editingItem) {
-                showSection('products', selectedSupplier);
-                return '';
-            }
-
-            let product = null;
-            if (editingItem.id) {
-                const { data, error } = await supabase
-                    .from('products')
-                    .select('*')
-                    .eq('id', editingItem.id)
-                    .single();
-                
-                if (!error) product = data;
-            }
-
-            return `
-                <div class="p-4">
-                    <h2 class="text-xl font-bold mb-4">${product ? t('edit') : t('addProduct')}</h2>
-                    <div class="bg-white p-4 rounded shadow space-y-3">
-                        <div>
-                            <label class="block mb-1">${t('supplier')}</label>
-                            <input type="text" value="${selectedSupplier.name}" disabled class="w-full border rounded px-3 py-2 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('name')}</label>
-                            <input type="text" id="productName" value="${product ? product.name : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block mb-1">${t('unit')}</label>
-                            <input type="text" id="productUnit" value="${product ? product.unit : ''}" class="w-full border rounded px-3 py-2">
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="saveProduct()" class="btn-primary flex-1">${t('save')}</button>
-                            <button onclick="editingItem = null; render()" class="btn-secondary flex-1">${t('cancel')}</button>
-                        </div>
                     </div>
                 </div>
             `;
@@ -988,7 +1066,7 @@
                 .from('order_items')
                 .insert(orderItems);
 
-            showSection('orders');
+            showSection('supplierDashboard', selectedSupplier);
         }
 
         async function editOrder(orderId) {
@@ -1037,7 +1115,7 @@
                 .from('order_items')
                 .insert(orderItems);
 
-            showSection('orders');
+            showSection('orderHistory', selectedSupplier);
         }
 
         async function deleteOrder(orderId) {
@@ -1048,7 +1126,7 @@
                 .delete()
                 .eq('id', orderId);
 
-            render();
+            showSection('orderHistory', selectedSupplier);
         }
 
         async function submitOrder(orderId) {
@@ -1198,18 +1276,17 @@
                 case 'suppliers':
                     content = await renderSuppliersList();
                     break;
+                case 'supplierDashboard':
+                    content = await renderSupplierDashboard();
+                    break;
                 case 'products':
-                    if (editingItem) {
-                        content = await renderProductForm();
-                    } else {
-                        content = await renderProducts();
-                    }
+                    content = await renderProducts();
                     break;
                 case 'newOrder':
                     content = await renderNewOrder();
                     break;
-                case 'orders':
-                    content = await renderOrders();
+                case 'orderHistory':
+                    content = await renderOrderHistory();
                     break;
                 case 'editOrder':
                     content = await renderEditOrder(editingItem.id);
@@ -1243,9 +1320,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (!SUPABASE_URL.includes('supabase.co')) {
-                alert('Please configure your Supabase credentials in the code!');
-            }
             render();
         });
     </script>
