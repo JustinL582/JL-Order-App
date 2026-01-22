@@ -60,7 +60,8 @@
                 submitToAdmin: 'Submit to Admin',
                 quantityRequired: 'Please enter at least one quantity greater than 0',
                 confirmDelete: 'Are you sure you want to delete?',
-                orderNumber: 'Order #'
+                orderNumber: 'Order #',
+                view: 'View'
             },
             zh: {
                 login: '登录',
@@ -104,7 +105,8 @@
                 submitToAdmin: '提交给管理员',
                 quantityRequired: '请至少输入一个大于0的数量',
                 confirmDelete: '确定要删除吗？',
-                orderNumber: '订单 #'
+                orderNumber: '订单 #',
+                view: '查看'
             }
         };
 
@@ -273,7 +275,7 @@
                     <div class="flex justify-between items-center mb-6">
                         <h1 class="text-2xl font-bold">${t('dashboard')}</h1>
                         <div class="flex gap-2">
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                             <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
@@ -453,8 +455,8 @@
                                         ${order.status === 'pending_admin' && (currentUser.role === 'company_admin' || currentUser.role === 'super_admin') ? `
                                             <button onclick="confirmOrder(${order.id})" class="btn-success text-sm">${t('confirm')}</button>
                                         ` : ''}
-                                        ${order.status === 'confirmed' ? `
-                                            <button onclick="viewOrder(${order.id})" class="btn-primary text-sm">View</button>
+                                        ${order.status === 'confirmed' || (order.status === 'pending_admin' && currentUser.role === 'staff') ? `
+                                            <button onclick="viewOrder(${order.id})" class="btn-primary text-sm">${t('view')}</button>
                                         ` : ''}
                                     </div>
                                 </div>
