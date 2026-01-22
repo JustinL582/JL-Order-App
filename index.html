@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .btn-primary { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700; }
+        .btn-secondary { @apply bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700; }
+        .btn-danger { @apply bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700; }
+        .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app"></div>
+
+    <script>
+        const translations = {
+            en: {
+                login: 'Login',
+                logout: 'Logout',
+                username: 'Username',
+                password: 'Password',
+                dashboard: 'Dashboard',
+                users: 'Users',
+                companies: 'Companies',
+                suppliers: 'Suppliers',
+                products: 'Products',
+                orders: 'Orders',
+                createOrder: 'Create Order',
+                edit: 'Edit',
+                delete: 'Delete',
+                confirm: 'Confirm',
+                save: 'Save',
+                cancel: 'Cancel',
+                name: 'Name',
+                phone: 'Phone',
+                address: 'Address',
+                role: 'Role',
+                company: 'Company',
+                unit: 'Unit',
+                quantity: 'Quantity',
+                supplier: 'Supplier',
+                status: 'Status',
+                createdAt: 'Created At',
+                superAdmin: 'Super Admin',
+                companyAdmin: 'Company Admin',
+                staff: 'Staff',
+                staffDraft: 'Staff Draft',
+                pendingAdmin: 'Pending Admin',
+                confirmed: 'Confirmed',
+                addUser: 'Add User',
+                addCompany: 'Add Company',
+                addSupplier: 'Add Supplier',
+                addProduct: 'Add Product',
+                contactPerson: 'Contact Person',
+                noDataAvailable: 'No data available',
+                submitToAdmin: 'Submit to Admin',
+                quantityRequired: 'Please enter at least one quantity greater than 0',
+                confirmDelete: 'Are you sure you want to delete?',
+                orderNumber: 'Order #'
+            },
+            zh: {
+                login: '登录',
+                logout: '登出',
+                username: '用户名',
+                password: '密码',
+                dashboard: '主页',
+                users: '用户',
+                companies: '公司',
+                suppliers: '供应商',
+                products: '产品',
+                orders: '订单',
+                createOrder: '创建订单',
+                edit: '编辑',
+                delete: '删除',
+                confirm: '确认',
+                save: '保存',
+                cancel: '取消',
+                name: '名称',
+                phone: '电话',
+                address: '地址',
+                role: '角色',
+                company: '公司',
+                unit: '单位',
+                quantity: '数量',
+                supplier: '供应商',
+                status: '状态',
+                createdAt: '创建时间',
+                superAdmin: '超级管理员',
+                companyAdmin: '公司管理员',
+                staff: '员工',
+                staffDraft: '员工草稿',
+                pendingAdmin: '待管理员确认',
+                confirmed: '已确认',
+                addUser: '添加用户',
+                addCompany: '添加公司',
+                addSupplier: '添加供应商',
+                addProduct: '添加产品',
+                contactPerson: '联系人',
+                noDataAvailable: '暂无数据',
+                submitToAdmin: '提交给管理员',
+                quantityRequired: '请至少输入一个大于0的数量',
+                confirmDelete: '确定要删除吗？',
+                orderNumber: '订单 #'
+            }
+        };
+
+        class Store {
+            constructor() {
+                this.initializeData();
+            }
+
+            initializeData() {
+                if (!localStorage.getItem('initialized')) {
+                    const data = {
+                        users: [
+                            { id: 1, username: 'superadmin', password: 'admin', role: 'super_admin', companyId: null },
+                            { id: 2, username: 'companyadmin', password: 'admin', role: 'company_admin', companyId: 1 },
+                            { id: 3, username: 'staff', password: 'staff', role: 'staff', companyId: 1 }
+                        ],
+                        companies: [
+                            { id: 1, name: 'ABC Trading Co.', phone: '+1-555-0100', address: '123 Business St, City, State 12345' }
+                        ],
+                        suppliers: [
+                            { id: 1, name: 'Supplier A', contactPerson: 'John Doe', phone: '+1-555-0201' },
+                            { id: 2, name: 'Supplier B', contactPerson: 'Jane Smith', phone: '+1-555-0202' },
+                            { id: 3, name: 'Supplier C', contactPerson: 'Bob Wilson', phone: '+1-555-0203' }
+                        ],
+                        products: [
+                            { id: 1, name: 'Product Alpha', unit: 'kg', supplierId: 1 },
+                            { id: 2, name: 'Product Beta', unit: 'pcs', supplierId: 1 },
+                            { id: 3, name: 'Product Gamma', unit: 'box', supplierId: 2 },
+                            { id: 4, name: 'Product Delta', unit: 'liter', supplierId: 2 },
+                            { id: 5, name: 'Product Epsilon', unit: 'pack', supplierId: 3 }
+                        ],
+                        orders: [],
+                        nextUserId: 4,
+                        nextCompanyId: 2,
+                        nextSupplierId: 4,
+                        nextProductId: 6,
+                        nextOrderId: 1
+                    };
+                    
+                    Object.keys(data).forEach(key => {
+                        localStorage.setItem(key, JSON.stringify(data[key]));
+                    });
+                    localStorage.setItem('initialized', 'true');
+                }
+            }
+
+            get(key) {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : null;
+            }
+
+            set(key, value) {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+
+            getNextId(type) {
+                const key = `next${type.charAt(0).toUpperCase() + type.slice(1)}Id`;
+                const id = this.get(key);
+                this.set(key, id + 1);
+                return id;
+            }
+        }
+
+        const store = new Store();
+        let currentUser = null;
+        let currentLang = localStorage.getItem('language') || 'en';
+
+        function t(key) {
+            return translations[currentLang][key] || key;
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            render();
+        }
+
+        function login(username, password) {
+            const users = store.get('users');
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                render();
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            render();
+        }
+
+        function canAccessOrders(user) {
+            return user.role === 'super_admin' || user.role === 'company_admin' || user.role === 'staff';
+        }
+
+        function getVisibleOrders(user) {
+            const orders = store.get('orders') || [];
+            if (user.role === 'super_admin') {
+                return orders;
+            }
+            
+            const userOrders = orders.filter(o => o.companyId === user.companyId);
+            
+            if (user.role === 'staff') {
+                const now = Date.now();
+                const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+                return userOrders.filter(o => {
+                    if (o.status === 'staff_draft' || o.status === 'pending_admin') return true;
+                    if (o.status === 'confirmed') {
+                        return (now - o.createdAt) <= fourteenDays;
+                    }
+                    return false;
+                });
+            }
+            
+            return userOrders;
+        }
+
+        function renderLogin() {
+            return `
+                <div class="min-h-screen flex items-center justify-center">
+                    <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-2xl font-bold">${t('login')}</h1>
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
+                                ${currentLang === 'en' ? '中文' : 'EN'}
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block mb-1">${t('username')}</label>
+                                <input type="text" id="username" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block mb-1">${t('password')}</label>
+                                <input type="password" id="password" class="w-full border rounded px-3 py-2">
+                            </div>
+                            <button onclick="handleLogin()" class="btn-primary w-full">${t('login')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDashboard() {
+            const roleText = {
+                super_admin: t('superAdmin'),
+                company_admin: t('companyAdmin'),
+                staff: t('staff')
+            };
+
+            let sections = [];
+            
+            if (currentUser.role === 'super_admin') {
+                sections = ['users', 'companies', 'suppliers', 'products', 'orders'];
+            } else if (currentUser.role === 'company_admin') {
+                sections = ['products', 'orders'];
+            } else if (currentUser.role === 'staff') {
+                sections = ['orders'];
+            }
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-bold">${t('dashboard')}</h1>
+                        <div class="flex gap-2">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
+                                ${currentLang === 'en' ? '中文' : 'EN'}
+                            </button>
+                            <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <p class="text-sm text-gray-600">${currentUser.username} (${roleText[currentUser.role]})</p>
+                    </div>
+                    <div class="space-y-2">
+                        ${sections.map(section => `
+                            <button onclick="showSection('${section}')" class="btn-primary w-full">
+                                ${t(section)}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUsers() {
+            const users = store.get('users');
+            const companies = store.get('companies');
+            const roleMap = {
+                super_admin: t('superAdmin'),
+                company_admin: t('companyAdmin'),
+                staff: t('staff')
+            };
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('users')}</h2>
+                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    <button onclick="showUserForm()" class="btn-primary w-full mb-4">${t('addUser')}</button>
+                    <div class="space-y-2">
+                        ${users.map(user => {
+                            const company = companies.find(c => c.id === user.companyId);
+                            return `
+                                <div class="bg-white p-3 rounded shadow">
+                                    <div class="font-semibold">${user.username}</div>
+                                    <div class="text-sm text-gray-600">${roleMap[user.role]}</div>
+                                    ${company ? `<div class="text-sm text-gray-600">${company.name}</div>` : ''}
+                                    <div class="flex gap-2 mt-2">
+                                        <button onclick="editUser(${user.id})" class="btn-primary text-sm">${t('edit')}</button>
+                                        <button onclick="deleteUser(${user.id})" class="btn-danger text-sm">${t('delete')}</button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCompanies() {
+            const companies = store.get('companies');
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('companies')}</h2>
+                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    <button onclick="showCompanyForm()" class="btn-primary w-full mb-4">${t('addCompany')}</button>
+                    <div class="space-y-2">
+                        ${companies.map(company => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${company.name}</div>
+                                <div class="text-sm text-gray-600">${company.phone}</div>
+                                <div class="text-sm text-gray-600">${company.address}</div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="editCompany(${company.id})" class="btn-primary text-sm">${t('edit')}</button>
+                                    <button onclick="deleteCompany(${company.id})" class="btn-danger text-sm">${t('delete')}</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSuppliers() {
+            const suppliers = store.get('suppliers');
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('suppliers')}</h2>
+                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    <button onclick="showSupplierForm()" class="btn-primary w-full mb-4">${t('addSupplier')}</button>
+                    <div class="space-y-2">
+                        ${suppliers.map(supplier => `
+                            <div class="bg-white p-3 rounded shadow">
+                                <div class="font-semibold">${supplier.name}</div>
+                                <div class="text-sm text-gray-600">${t('contactPerson')}: ${supplier.contactPerson}</div>
+                                <div class="text-sm text-gray-600">${supplier.phone}</div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="editSupplier(${supplier.id})" class="btn-primary text-sm">${t('edit')}</button>
+                                    <button onclick="deleteSupplier(${supplier.id})" class="btn-danger text-sm">${t('delete')}</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProducts() {
+            const products = store.get('products');
+            const suppliers = store.get('suppliers');
+            const canModify = currentUser.role === 'super_admin';
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('products')}</h2>
+                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    ${canModify ? `<button onclick="showProductForm()" class="btn-primary w-full mb-4">${t('addProduct')}</button>` : ''}
+                    <div class="space-y-2">
+                        ${products.map(product => {
+                            const supplier = suppliers.find(s => s.id === product.supplierId);
+                            return `
+                                <div class="bg-white p-3 rounded shadow">
+                                    <div class="font-semibold">${product.name}</div>
+                                    <div class="text-sm text-gray-600">${t('unit')}: ${product.unit}</div>
+                                    <div class="text-sm text-gray-600">${t('supplier')}: ${supplier ? supplier.name : 'N/A'}</div>
+                                    ${canModify ? `
+                                        <div class="flex gap-2 mt-2">
+                                            <button onclick="editProduct(${product.id})" class="btn-primary text-sm">${t('edit')}</button>
+                                            <button onclick="deleteProduct(${product.id})" class="btn-danger text-sm">${t('delete')}</button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderOrders() {
+            const orders = getVisibleOrders(currentUser);
+            const companies = store.get('companies');
+            const statusMap = {
+                staff_draft: t('staffDraft'),
+                pending_admin: t('pendingAdmin'),
+                confirmed: t('confirmed')
+            };
+
+            return `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('orders')}</h2>
+                        <button onclick="showSection('dashboard')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    ${currentUser.role === 'staff' ? `<button onclick="showOrderForm()" class="btn-primary w-full mb-4">${t('createOrder')}</button>` : ''}
+                    <div class="space-y-2">
+                        ${orders.length === 0 ? `<div class="text-center text-gray-500 py-4">${t('noDataAvailable')}</div>` : ''}
+                        ${orders.map(order => {
+                            const company = companies.find(c => c.id === order.companyId);
+                            const date = new Date(order.createdAt).toLocaleDateString();
+                            return `
+                                <div class="bg-white p-3 rounded shadow">
+                                    <div class="font-semibold">${t('orderNumber')}${order.id}</div>
+                                    <div class="text-sm text-gray-600">${company ? company.name : 'N/A'}</div>
+                                    <div class="text-sm text-gray-600">${statusMap[order.status]}</div>
+                                    <div class="text-sm text-gray-600">${date}</div>
+                                    <div class="flex gap-2 mt-2">
+                                        ${order.status === 'staff_draft' && currentUser.role === 'staff' ? `
+                                            <button onclick="editOrder(${order.id})" class="btn-primary text-sm">${t('edit')}</button>
+                                            <button onclick="deleteOrder(${order.id})" class="btn-danger text-sm">${t('delete')}</button>
+                                            <button onclick="submitOrder(${order.id})" class="btn-success text-sm">${t('submitToAdmin')}</button>
+                                        ` : ''}
+                                        ${order.status === 'pending_admin' && (currentUser.role === 'company_admin' || currentUser.role === 'super_admin') ? `
+                                            <button onclick="confirmOrder(${order.id})" class="btn-success text-sm">${t('confirm')}</button>
+                                        ` : ''}
+                                        ${order.status === 'confirmed' ? `
+                                            <button onclick="viewOrder(${order.id})" class="btn-primary text-sm">View</button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showUserForm(userId = null) {
+            const users = store.get('users');
+            const companies = store.get('companies');
+            const user = userId ? users.find(u => u.id === userId) : null;
+
+            const html = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4">${user ? t('edit') : t('addUser')}</h2>
+                    <div class="bg-white p-4 rounded shadow space-y-3">
+                        <div>
+                            <label class="block mb-1">${t('username')}</label>
+                            <input type="text" id="userUsername" value="${user ? user.username : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('password')}</label>
+                            <input type="password" id="userPassword" value="${user ? user.password : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('role')}</label>
+                            <select id="userRole" class="w-full border rounded px-3 py-2">
+                                <option value="super_admin" ${user && user.role === 'super_admin' ? 'selected' : ''}>${t('superAdmin')}</option>
+                                <option value="company_admin" ${user && user.role === 'company_admin' ? 'selected' : ''}>${t('companyAdmin')}</option>
+                                <option value="staff" ${user && user.role === 'staff' ? 'selected' : ''}>${t('staff')}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('company')}</label>
+                            <select id="userCompanyId" class="w-full border rounded px-3 py-2">
+                                <option value="">None</option>
+                                ${companies.map(c => `<option value="${c.id}" ${user && user.companyId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="saveUser(${userId})" class="btn-primary flex-1">${t('save')}</button>
+                            <button onclick="showSection('users')" class="btn-secondary flex-1">${t('cancel')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function saveUser(userId) {
+            const users = store.get('users');
+            const username = document.getElementById('userUsername').value;
+            const password = document.getElementById('userPassword').value;
+            const role = document.getElementById('userRole').value;
+            const companyId = document.getElementById('userCompanyId').value;
+
+            if (userId) {
+                const index = users.findIndex(u => u.id === userId);
+                users[index] = {
+                    id: userId,
+                    username,
+                    password,
+                    role,
+                    companyId: companyId ? parseInt(companyId) : null
+                };
+            } else {
+                users.push({
+                    id: store.getNextId('user'),
+                    username,
+                    password,
+                    role,
+                    companyId: companyId ? parseInt(companyId) : null
+                });
+            }
+            store.set('users', users);
+            showSection('users');
+        }
+
+        function editUser(id) {
+            showUserForm(id);
+        }
+
+        function deleteUser(id) {
+            if (confirm(t('confirmDelete'))) {
+                const users = store.get('users');
+                store.set('users', users.filter(u => u.id !== id));
+                render();
+            }
+        }
+
+        function showCompanyForm(companyId = null) {
+            const companies = store.get('companies');
+            const company = companyId ? companies.find(c => c.id === companyId) : null;
+
+            const html = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4">${company ? t('edit') : t('addCompany')}</h2>
+                    <div class="bg-white p-4 rounded shadow space-y-3">
+                        <div>
+                            <label class="block mb-1">${t('name')}</label>
+                            <input type="text" id="companyName" value="${company ? company.name : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('phone')}</label>
+                            <input type="text" id="companyPhone" value="${company ? company.phone : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('address')}</label>
+                            <input type="text" id="companyAddress" value="${company ? company.address : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="saveCompany(${companyId})" class="btn-primary flex-1">${t('save')}</button>
+                            <button onclick="showSection('companies')" class="btn-secondary flex-1">${t('cancel')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function saveCompany(companyId) {
+            const companies = store.get('companies');
+            const name = document.getElementById('companyName').value;
+            const phone = document.getElementById('companyPhone').value;
+            const address = document.getElementById('companyAddress').value;
+
+            if (companyId) {
+                const index = companies.findIndex(c => c.id === companyId);
+                companies[index] = { id: companyId, name, phone, address };
+            } else {
+                companies.push({
+                    id: store.getNextId('company'),
+                    name,
+                    phone,
+                    address
+                });
+            }
+            store.set('companies', companies);
+            showSection('companies');
+        }
+
+        function editCompany(id) {
+            showCompanyForm(id);
+        }
+
+        function deleteCompany(id) {
+            if (confirm(t('confirmDelete'))) {
+                const companies = store.get('companies');
+                store.set('companies', companies.filter(c => c.id !== id));
+                render();
+            }
+        }
+
+        function showSupplierForm(supplierId = null) {
+            const suppliers = store.get('suppliers');
+            const supplier = supplierId ? suppliers.find(s => s.id === supplierId) : null;
+
+            const html = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4">${supplier ? t('edit') : t('addSupplier')}</h2>
+                    <div class="bg-white p-4 rounded shadow space-y-3">
+                        <div>
+                            <label class="block mb-1">${t('name')}</label>
+                            <input type="text" id="supplierName" value="${supplier ? supplier.name : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('contactPerson')}</label>
+                            <input type="text" id="supplierContact" value="${supplier ? supplier.contactPerson : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('phone')}</label>
+                            <input type="text" id="supplierPhone" value="${supplier ? supplier.phone : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="saveSupplier(${supplierId})" class="btn-primary flex-1">${t('save')}</button>
+                            <button onclick="showSection('suppliers')" class="btn-secondary flex-1">${t('cancel')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function saveSupplier(supplierId) {
+            const suppliers = store.get('suppliers');
+            const name = document.getElementById('supplierName').value;
+            const contactPerson = document.getElementById('supplierContact').value;
+            const phone = document.getElementById('supplierPhone').value;
+
+            if (supplierId) {
+                const index = suppliers.findIndex(s => s.id === supplierId);
+                suppliers[index] = { id: supplierId, name, contactPerson, phone };
+            } else {
+                suppliers.push({
+                    id: store.getNextId('supplier'),
+                    name,
+                    contactPerson,
+                    phone
+                });
+            }
+            store.set('suppliers', suppliers);
+            showSection('suppliers');
+        }
+
+        function editSupplier(id) {
+            showSupplierForm(id);
+        }
+
+        function deleteSupplier(id) {
+            if (confirm(t('confirmDelete'))) {
+                const suppliers = store.get('suppliers');
+                store.set('suppliers', suppliers.filter(s => s.id !== id));
+                render();
+            }
+        }
+
+        function showProductForm(productId = null) {
+            const products = store.get('products');
+            const suppliers = store.get('suppliers');
+            const product = productId ? products.find(p => p.id === productId) : null;
+
+            const html = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4">${product ? t('edit') : t('addProduct')}</h2>
+                    <div class="bg-white p-4 rounded shadow space-y-3">
+                        <div>
+                            <label class="block mb-1">${t('name')}</label>
+                            <input type="text" id="productName" value="${product ? product.name : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('unit')}</label>
+                            <input type="text" id="productUnit" value="${product ? product.unit : ''}" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block mb-1">${t('supplier')}</label>
+                            <select id="productSupplierId" class="w-full border rounded px-3 py-2">
+                                ${suppliers.map(s => `<option value="${s.id}" ${product && product.supplierId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="saveProduct(${productId})" class="btn-primary flex-1">${t('save')}</button>
+                            <button onclick="showSection('products')" class="btn-secondary flex-1">${t('cancel')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function saveProduct(productId) {
+            const products = store.get('products');
+            const name = document.getElementById('productName').value;
+            const unit = document.getElementById('productUnit').value;
+            const supplierId = parseInt(document.getElementById('productSupplierId').value);
+
+            if (productId) {
+                const index = products.findIndex(p => p.id === productId);
+                products[index] = { id: productId, name, unit, supplierId };
+            } else {
+                products.push({
+                    id: store.getNextId('product'),
+                    name,
+                    unit,
+                    supplierId
+                });
+            }
+            store.set('products', products);
+            showSection('products');
+        }
+
+        function editProduct(id) {
+            showProductForm(id);
+        }
+
+        function deleteProduct(id) {
+            if (confirm(t('confirmDelete'))) {
+                const products = store.get('products');
+                store.set('products', products.filter(p => p.id !== id));
+                render();
+            }
+        }
+
+        function showOrderForm(orderId = null) {
+            const orders = store.get('orders') || [];
+            const products = store.get('products');
+            const suppliers = store.get('suppliers');
+            const companies = store.get('companies');
+            const order = orderId ? orders.find(o => o.id === orderId) : null;
+
+            const company = companies.find(c => c.id === currentUser.companyId);
+
+            const supplierGroups = {};
+            products.forEach(product => {
+                if (!supplierGroups[product.supplierId]) {
+                    supplierGroups[product.supplierId] = [];
+                }
+                supplierGroups[product.supplierId].push(product);
+            });
+
+            const html = `
+                <div class="p-4">
+                    <h2 class="text-xl font-bold mb-4">${order ? t('edit') : t('createOrder')}</h2>
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold">${company.name}</div>
+                        <div class="text-sm text-gray-600">${company.phone}</div>
+                        <div class="text-sm text-gray-600">${company.address}</div>
+                    </div>
+                    <div class="space-y-4">
+                        ${Object.keys(supplierGroups).map(supplierId => {
+                            const supplier = suppliers.find(s => s.id === parseInt(supplierId));
+                            const productsInGroup = supplierGroups[supplierId];
+                            return `
+                                <div class="bg-white p-4 rounded shadow">
+                                    <div class="font-semibold mb-3">${supplier.name}</div>
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="border-b">
+                                                <th class="text-left py-2">${t('name')}</th>
+                                                <th class="text-left py-2">${t('unit')}</th>
+                                                <th class="text-right py-2 w-24">${t('quantity')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${productsInGroup.map(product => {
+                                                const qty = order ? (order.items.find(i => i.productId === product.id)?.quantity || '') : '';
+                                                return `
+                                                    <tr class="border-b">
+                                                        <td class="py-2">${product.name}</td>
+                                                        <td class="py-2">${product.unit}</td>
+                                                        <td class="py-2 text-right">
+                                                            <input type="number" 
+                                                                id="qty-${product.id}" 
+                                                                value="${qty}" 
+                                                                min="0" 
+                                                                class="w-20 border rounded px-2 py-1 text-right"
+                                                                placeholder="0">
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="saveOrder(${orderId})" class="btn-primary flex-1">${t('save')}</button>
+                        <button onclick="showSection('orders')" class="btn-secondary flex-1">${t('cancel')}</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        function saveOrder(orderId) {
+            const orders = store.get('orders') || [];
+            const products = store.get('products');
+            const items = [];
+
+            products.forEach(product => {
+                const qtyInput = document.getElementById(`qty-${product.id}`);
+                const qty = parseInt(qtyInput.value) || 0;
+                if (qty > 0) {
+                    items.push({
+                        productId: product.id,
+                        quantity: qty
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert(t('quantityRequired'));
+                return;
+            }
+
+            if (orderId) {
+                const index = orders.findIndex(o => o.id === orderId);
+                orders[index].items = items;
+            } else {
+                orders.push({
+                    id: store.getNextId('order'),
+                    companyId: currentUser.companyId,
+                    status: 'staff_draft',
+                    items,
+                    createdAt: Date.now()
+                });
+            }
+            store.set('orders', orders);
+            showSection('orders');
+        }
+
+        function editOrder(id) {
+            showOrderForm(id);
+        }
+
+        function deleteOrder(id) {
+            if (confirm(t('confirmDelete'))) {
+                const orders = store.get('orders') || [];
+                store.set('orders', orders.filter(o => o.id !== id));
+                render();
+            }
+        }
+
+        function submitOrder(id) {
+            const orders = store.get('orders') || [];
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                order.status = 'pending_admin';
+                store.set('orders', orders);
+                render();
+            }
+        }
+
+        function confirmOrder(id) {
+            const orders = store.get('orders') || [];
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                order.status = 'confirmed';
+                store.set('orders', orders);
+                render();
+            }
+        }
+
+        function viewOrder(id) {
+            const orders = store.get('orders') || [];
+            const products = store.get('products');
+            const suppliers = store.get('suppliers');
+            const companies = store.get('companies');
+            const order = orders.find(o => o.id === id);
+            
+            if (!order) return;
+
+            const company = companies.find(c => c.id === order.companyId);
+            const date = new Date(order.createdAt).toLocaleDateString();
+
+            const supplierGroups = {};
+            order.items.forEach(item => {
+                const product = products.find(p => p.id === item.productId);
+                if (!product) return;
+                
+                if (!supplierGroups[product.supplierId]) {
+                    supplierGroups[product.supplierId] = [];
+                }
+                supplierGroups[product.supplierId].push({
+                    product,
+                    quantity: item.quantity
+                });
+            });
+
+            const html = `
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">${t('orderNumber')}${order.id}</h2>
+                        <button onclick="showSection('orders')" class="btn-secondary">${t('cancel')}</button>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow mb-4">
+                        <div class="font-semibold">${company.name}</div>
+                        <div class="text-sm text-gray-600">${company.phone}</div>
+                        <div class="text-sm text-gray-600">${company.address}</div>
+                        <div class="text-sm text-gray-600 mt-2">${date}</div>
+                    </div>
+                    <div class="space-y-4">
+                        ${Object.keys(supplierGroups).map(supplierId => {
+                            const supplier = suppliers.find(s => s.id === parseInt(supplierId));
+                            const items = supplierGroups[supplierId];
+                            return `
+                                <div class="bg-white p-4 rounded shadow">
+                                    <div class="font-semibold mb-3">${supplier.name}</div>
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="border-b">
+                                                <th class="text-left py-2">${t('name')}</th>
+                                                <th class="text-left py-2">${t('unit')}</th>
+                                                <th class="text-right py-2 w-24">${t('quantity')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${items.map(item => `
+                                                <tr class="border-b">
+                                                    <td class="py-2">${item.product.name}</td>
+                                                    <td class="py-2">${item.product.unit}</td>
+                                                    <td class="py-2 text-right">${item.quantity}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        let currentSection = 'dashboard';
+
+        function showSection(section) {
+            currentSection = section;
+            render();
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!currentUser) {
+                app.innerHTML = renderLogin();
+                return;
+            }
+
+            switch (currentSection) {
+                case 'dashboard':
+                    app.innerHTML = renderDashboard();
+                    break;
+                case 'users':
+                    app.innerHTML = renderUsers();
+                    break;
+                case 'companies':
+                    app.innerHTML = renderCompanies();
+                    break;
+                case 'suppliers':
+                    app.innerHTML = renderSuppliers();
+                    break;
+                case 'products':
+                    app.innerHTML = renderProducts();
+                    break;
+                case 'orders':
+                    app.innerHTML = renderOrders();
+                    break;
+                default:
+                    app.innerHTML = renderDashboard();
+            }
+        }
+
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            login(username, password);
+        }
+
+        document.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>
