@@ -35,19 +35,6 @@
             width: 80px;
             text-align: right;
         }
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -180,27 +167,56 @@
 
         async function login(username, password) {
             try {
+                // Trim whitespace from inputs (critical for mobile keyboards)
+                const trimmedUsername = username.trim();
+                const trimmedPassword = password.trim();
+
+                // Debug log (mask password for security)
+                console.log('Login attempt:', {
+                    username: trimmedUsername,
+                    password: trimmedPassword.substring(0, 2) + '***',
+                    usernameLength: trimmedUsername.length,
+                    passwordLength: trimmedPassword.length
+                });
+
+                // Query Supabase with exact column names: username, password, role, company_id
                 const { data, error } = await db
                     .from('users')
-                    .select('*, companies(*)')
-                    .eq('username', username)
-                    .eq('password', password)
+                    .select('id, username, password, role, company_id, companies(id, name, phone, address)')
+                    .eq('username', trimmedUsername)
+                    .eq('password', trimmedPassword)
                     .single();
 
-                if (error || !data) {
-                    alert('Invalid credentials');
+                console.log('Supabase response:', { 
+                    success: !!data, 
+                    error: error?.message,
+                    userData: data ? { username: data.username, role: data.role } : null
+                });
+
+                if (error) {
+                    console.error('Supabase error:', error);
+                    alert('Invalid credentials - Error: ' + error.message);
+                    return;
+                }
+
+                if (!data) {
+                    console.warn('No user found with these credentials');
+                    alert('Invalid credentials - No matching user found');
                     return;
                 }
 
                 currentUser = data;
                 currentSection = 'suppliers';
+                console.log('Login successful:', currentUser.username);
                 render();
             } catch (err) {
+                console.error('Login exception:', err);
                 alert('Login error: ' + err.message);
             }
         }
 
         function logout() {
+            console.log('User logged out:', currentUser?.username);
             currentUser = null;
             selectedSupplier = null;
             currentSection = 'suppliers';
@@ -220,20 +236,23 @@
                     <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
                         <div class="flex justify-between items-center mb-6">
                             <h1 class="text-2xl font-bold">${t('login')}</h1>
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                         </div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block mb-1">${t('username')}</label>
-                                <input type="text" id="username" class="w-full border rounded px-3 py-2">
+                                <input type="text" id="username" autocomplete="username" class="w-full border rounded px-3 py-2">
                             </div>
                             <div>
                                 <label class="block mb-1">${t('password')}</label>
-                                <input type="password" id="password" class="w-full border rounded px-3 py-2" onkeypress="if(event.key==='Enter') handleLogin()">
+                                <input type="password" id="password" autocomplete="current-password" class="w-full border rounded px-3 py-2" onkeypress="if(event.key==='Enter') handleLogin()">
                             </div>
                             <button onclick="handleLogin()" class="btn-primary w-full">${t('login')}</button>
+                        </div>
+                        <div class="mt-4 text-xs text-gray-500 text-center">
+                            Test: superadmin/admin, companyadmin/admin, staff/staff
                         </div>
                     </div>
                 </div>
@@ -258,7 +277,7 @@
                         <h1 class="text-2xl font-bold">${t('suppliers')}</h1>
                         <div class="flex gap-2 items-center">
                             ${isAdmin ? `<button onclick="showSection('admin')" class="btn-secondary text-sm">${t('admin')}</button>` : ''}
-                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en'}')" class="text-sm text-blue-600">
+                            <button onclick="setLanguage('${currentLang === 'en' ? 'zh' : 'en}')" class="text-sm text-blue-600">
                                 ${currentLang === 'en' ? '中文' : 'EN'}
                             </button>
                             <button onclick="logout()" class="btn-secondary text-sm">${t('logout')}</button>
@@ -538,6 +557,7 @@
                 return `<div class="p-4 text-red-600">Error loading orders: ${error.message}</div>`;
             }
 
+            // 14-Day Rule for Staff: Filter confirmed orders older than 14 days
             const filteredOrders = currentUser.role === 'staff' 
                 ? orders.filter(o => {
                     if (o.status === 'staff_draft' || o.status === 'pending_admin') return true;
@@ -981,8 +1001,8 @@
         }
 
         async function saveProduct() {
-            const name = document.getElementById('productName').value;
-            const unit = document.getElementById('productUnit').value;
+            const name = document.getElementById('productName').value.trim();
+            const unit = document.getElementById('productUnit').value.trim();
 
             if (!name || !unit) {
                 alert('Please fill all fields');
@@ -1054,6 +1074,7 @@
 
             if (orderError) {
                 alert('Error creating order');
+                console.error('Order creation error:', orderError);
                 return;
             }
 
@@ -1154,8 +1175,8 @@
         }
 
         async function saveUser() {
-            const username = document.getElementById('itemUsername').value;
-            const password = document.getElementById('itemPassword').value;
+            const username = document.getElementById('itemUsername').value.trim();
+            const password = document.getElementById('itemPassword').value.trim();
             const role = document.getElementById('itemRole').value;
             const companyId = document.getElementById('itemCompanyId').value || null;
 
@@ -1191,9 +1212,9 @@
         }
 
         async function saveCompany() {
-            const name = document.getElementById('itemName').value;
-            const phone = document.getElementById('itemPhone').value;
-            const address = document.getElementById('itemAddress').value;
+            const name = document.getElementById('itemName').value.trim();
+            const phone = document.getElementById('itemPhone').value.trim();
+            const address = document.getElementById('itemAddress').value.trim();
 
             if (!name || !phone || !address) {
                 alert('Please fill all fields');
@@ -1227,9 +1248,9 @@
         }
 
         async function saveSupplier() {
-            const name = document.getElementById('itemName').value;
-            const contactPerson = document.getElementById('itemContactPerson').value;
-            const phone = document.getElementById('itemPhone').value;
+            const name = document.getElementById('itemName').value.trim();
+            const contactPerson = document.getElementById('itemContactPerson').value.trim();
+            const phone = document.getElementById('itemPhone').value.trim();
 
             if (!name || !contactPerson || !phone) {
                 alert('Please fill all fields');
