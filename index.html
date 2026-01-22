@@ -7,73 +7,60 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
             padding-bottom: 80px;
         }
-        .btn-primary { @apply bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold; }
-        .btn-secondary { @apply bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-semibold; }
-        .btn-danger { @apply bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-semibold; }
-        .btn-success { @apply bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold; }
-        .btn-cyan { @apply bg-cyan-500 text-white px-6 py-3 rounded-lg hover:bg-cyan-600 font-semibold; }
-        .floating-add {
+        .floating-btn {
             position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: #2563eb;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 100;
+        }
+        .floating-add {
+            bottom: 100px;
+            right: 20px;
+            background: #2563eb;
             color: white;
             font-size: 32px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 100;
+            font-weight: 300;
         }
         .floating-delete {
-            position: fixed;
-            bottom: 20px;
+            bottom: 30px;
             right: 20px;
-            width: 60px;
-            height: 60px;
             background: #dc2626;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 100;
         }
-        .modal {
-            display: none;
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 200;
+            display: none;
             align-items: center;
             justify-content: center;
+            z-index: 200;
         }
-        .modal.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
         .qty-control {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         .qty-btn {
-            width: 36px;
-            height: 36px;
-            border: 1px solid #ccc;
+            width: 32px;
+            height: 32px;
+            border: 1.5px solid #d1d5db;
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -81,11 +68,13 @@
             cursor: pointer;
             font-size: 20px;
             user-select: none;
+            background: white;
         }
-        .qty-display {
-            min-width: 50px;
+        .qty-value {
+            min-width: 40px;
             text-align: center;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 16px;
         }
         .bottom-bar {
             position: fixed;
@@ -94,415 +83,299 @@
             right: 0;
             background: white;
             border-top: 1px solid #e5e7eb;
-            padding: 12px;
+            padding: 12px 16px;
             display: flex;
-            gap: 8px;
-            z-index: 50;
+            gap: 12px;
+        }
+        .btn { padding: 14px 24px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-cyan { background: #06b6d4; color: white; }
+        .btn-gray { background: #6b7280; color: white; }
+        .btn-white { background: white; border: 2px solid #d1d5db; color: #374151; }
+        .header {
+            background: white;
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
     <div id="app"></div>
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)"></div>
 
     <script>
         const SUPABASE_URL = 'https://jskwaqyxbdmnwtxfwngf.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impza3dhcXl4YmRtbnd0eGZ3bmdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0OTcxNDgsImV4cCI6MjA1MzA3MzE0OH0.sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
+        const SUPABASE_KEY = 'sb_publishable_Zyre7FUZo3xdG79MWvn7Hg_w5T22_IQ';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let state = {
+            user: null,
+            view: 'login',
+            supplier: null,
+            orderQty: {},
+            lang: localStorage.getItem('lang') || 'en'
+        };
 
-        const t = {
+        const txt = {
             en: {
-                login: 'Login', logout: 'Logout', username: 'Username', password: 'Password',
-                suppliers: 'Suppliers', manageProducts: 'Manage Products', newOrder: 'New Order',
-                orderHistory: 'Order History', edit: 'Edit', delete: 'Delete', confirm: 'Confirm',
-                save: 'Save', cancel: 'Cancel', back: 'Back', name: 'Name', unit: 'Unit',
-                quantity: 'Quantity', addProduct: 'Add Product', addSupplier: 'Add Supplier',
-                deleteSupplier: 'Delete Supplier', contactPerson: 'Contact Person', phone: 'Phone',
-                clearQty: 'Clear Qty', preview: 'Preview/Confirm', noProducts: 'No products available',
-                orderNumber: 'Order #', status: 'Status', date: 'Date', view: 'View',
-                staffDraft: 'Draft', pendingAdmin: 'Pending', confirmed: 'Confirmed',
-                company: 'Company', address: 'Address', selectSupplier: 'Select Supplier to Delete'
+                login: 'Login', username: 'Username', password: 'Password', logout: 'Logout',
+                suppliers: 'Suppliers', addSupplier: 'Add Supplier', deleteSupplier: 'Delete Supplier',
+                newOrder: 'New Order', manageProducts: 'Manage Products', orderHistory: 'Order History',
+                addProduct: 'Add Product', name: 'Name', unit: 'Unit', quantity: 'Quantity',
+                edit: 'Edit', delete: 'Delete', save: 'Save', cancel: 'Cancel', back: 'Back',
+                clearQty: 'Clear Qty', preview: 'Preview/Confirm', contactPerson: 'Contact Person',
+                phone: 'Phone', noProducts: 'No products', noOrders: 'No orders', order: 'Order',
+                company: 'Company', address: 'Address', date: 'Date', status: 'Status',
+                draft: 'Draft', pending: 'Pending', confirmed: 'Confirmed', selectToDelete: 'Select to Delete'
             },
             zh: {
-                login: '登录', logout: '登出', username: '用户名', password: '密码',
-                suppliers: '供应商', manageProducts: '管理产品', newOrder: '新订单',
-                orderHistory: '订单历史', edit: '编辑', delete: '删除', confirm: '确认',
-                save: '保存', cancel: '取消', back: '返回', name: '名称', unit: '单位',
-                quantity: '数量', addProduct: '添加产品', addSupplier: '添加供应商',
-                deleteSupplier: '删除供应商', contactPerson: '联系人', phone: '电话',
-                clearQty: '清空数量', preview: '预览/确认', noProducts: '暂无产品',
-                orderNumber: '订单 #', status: '状态', date: '日期', view: '查看',
-                staffDraft: '草稿', pendingAdmin: '待确认', confirmed: '已确认',
-                company: '公司', address: '地址', selectSupplier: '选择要删除的供应商'
+                login: '登录', username: '用户名', password: '密码', logout: '登出',
+                suppliers: '供应商', addSupplier: '添加供应商', deleteSupplier: '删除供应商',
+                newOrder: '新订单', manageProducts: '管理产品', orderHistory: '订单历史',
+                addProduct: '添加产品', name: '名称', unit: '单位', quantity: '数量',
+                edit: '编辑', delete: '删除', save: '保存', cancel: '取消', back: '返回',
+                clearQty: '清空数量', preview: '预览/确认', contactPerson: '联系人',
+                phone: '电话', noProducts: '暂无产品', noOrders: '暂无订单', order: '订单',
+                company: '公司', address: '地址', date: '日期', status: '状态',
+                draft: '草稿', pending: '待确认', confirmed: '已确认', selectToDelete: '选择要删除的'
             }
         };
 
-        let currentUser = null;
-        let lang = localStorage.getItem('language') || 'en';
-        let selectedSupplier = null;
-        let currentSection = 'suppliers';
-        let orderQuantities = {};
-
-        function tr(key) { return t[lang][key] || key; }
-        function setLang(l) { lang = l; localStorage.setItem('language', l); render(); }
+        const t = (key) => txt[state.lang][key] || key;
+        const setLang = (lang) => { state.lang = lang; localStorage.setItem('lang', lang); render(); };
 
         async function login(username, password) {
-            const u = username.trim();
-            const p = password.trim();
-            
-            const { data, error } = await db
-                .from('users')
-                .select('id, username, password, role, company_id, companies(id, name, phone, address)')
-                .eq('username', u)
-                .eq('password', p)
+            const { data, error } = await db.from('users')
+                .select('*, companies(*)')
+                .eq('username', username.trim())
+                .eq('password', password.trim())
                 .single();
 
-            if (error || !data) {
+            if (data) {
+                state.user = data;
+                state.view = 'suppliers';
+                render();
+            } else {
                 alert('Invalid credentials');
-                return;
             }
-
-            currentUser = data;
-            currentSection = 'suppliers';
-            render();
         }
 
         function logout() {
-            currentUser = null;
-            selectedSupplier = null;
-            currentSection = 'suppliers';
+            state = { user: null, view: 'login', supplier: null, orderQty: {}, lang: state.lang };
             render();
         }
 
-        function showSection(section, supplier = null) {
-            currentSection = section;
-            selectedSupplier = supplier;
-            orderQuantities = {};
+        function navigate(view, supplier = null) {
+            state.view = view;
+            state.supplier = supplier;
+            state.orderQty = {};
             render();
-        }
-
-        function renderLogin() {
-            return `
-                <div class="min-h-screen flex items-center justify-center p-4">
-                    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                        <div class="flex justify-between items-center mb-6">
-                            <h1 class="text-2xl font-bold">${tr('login')}</h1>
-                            <button onclick="setLang('${lang === 'en' ? 'zh' : 'en}')" class="text-blue-600 text-sm">
-                                ${lang === 'en' ? '中文' : 'EN'}
-                            </button>
-                        </div>
-                        <div class="space-y-4">
-                            <input type="text" id="username" placeholder="${tr('username')}" 
-                                   class="w-full border rounded-lg px-4 py-3">
-                            <input type="password" id="password" placeholder="${tr('password')}" 
-                                   class="w-full border rounded-lg px-4 py-3" 
-                                   onkeypress="if(event.key==='Enter') handleLogin()">
-                            <button onclick="handleLogin()" class="btn-primary w-full">${tr('login')}</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function renderSuppliersList() {
-            const { data: suppliers } = await db.from('suppliers').select('*').order('name');
-            const isAdmin = currentUser.role === 'super_admin';
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-2xl font-bold">${tr('suppliers')}</h1>
-                        <div class="flex gap-2">
-                            <button onclick="setLang('${lang === 'en' ? 'zh' : 'en}')" class="text-blue-600 text-sm">
-                                ${lang === 'en' ? '中文' : 'EN'}
-                            </button>
-                            <button onclick="logout()" class="btn-secondary text-sm px-4 py-2">${tr('logout')}</button>
-                        </div>
-                    </div>
-                    <div class="space-y-3">
-                        ${suppliers.map(s => `
-                            <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                                <div onclick="showSection('dashboard', ${JSON.stringify(s).replace(/"/g, '&quot;')})" 
-                                     class="flex-1 cursor-pointer">
-                                    <div class="font-bold text-lg">${s.name}</div>
-                                    <div class="text-sm text-gray-600">${s.contact_person} • ${s.phone}</div>
-                                </div>
-                                ${isAdmin ? `
-                                    <button onclick="editSupplier('${s.id}')" class="text-blue-600 ml-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                        </svg>
-                                    </button>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${isAdmin ? `
-                        <div class="floating-add" onclick="addSupplier()">+</div>
-                        <div class="floating-delete" onclick="showDeleteSupplierModal()">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        async function renderDashboard() {
-            if (!selectedSupplier) return '';
-            const isStaff = currentUser.role === 'staff';
-            const isAdmin = currentUser.role === 'super_admin';
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold">${selectedSupplier.name}</h2>
-                        <button onclick="showSection('suppliers')" class="btn-secondary text-sm px-4 py-2">
-                            ${tr('back')}
-                        </button>
-                    </div>
-                    <div class="space-y-3">
-                        ${isStaff ? `
-                            <button onclick="showSection('newOrder', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                    class="btn-primary w-full text-lg">+ ${tr('newOrder')}</button>
-                        ` : ''}
-                        ${isAdmin ? `
-                            <button onclick="showSection('products', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                    class="btn-cyan w-full">${tr('manageProducts')}</button>
-                        ` : ''}
-                        <button onclick="showSection('orderHistory', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                class="btn-secondary w-full">${tr('orderHistory')}</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function renderProducts() {
-            if (!selectedSupplier) return '';
-            const { data: products } = await db.from('products').select('*')
-                .eq('supplier_id', selectedSupplier.id).order('name');
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${tr('manageProducts')}</h2>
-                        <button onclick="showSection('dashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                class="btn-secondary text-sm px-4 py-2">${tr('back')}</button>
-                    </div>
-                    <button onclick="addProduct()" class="btn-primary w-full mb-4">${tr('addProduct')}</button>
-                    <div class="space-y-2">
-                        ${products.length === 0 ? `<div class="text-center text-gray-500 py-8">${tr('noProducts')}</div>` : ''}
-                        ${products.map(p => `
-                            <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                                <div class="flex-1">
-                                    <div class="font-semibold">${p.name}</div>
-                                    <div class="text-sm text-gray-600">${tr('unit')}: ${p.unit}</div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="editProduct('${p.id}', '${p.name}', '${p.unit}')" 
-                                            class="text-blue-600 px-3 py-1 border rounded">${tr('edit')}</button>
-                                    <button onclick="deleteProduct('${p.id}')" 
-                                            class="text-red-600 px-3 py-1 border rounded">${tr('delete')}</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        async function renderNewOrder() {
-            if (!selectedSupplier) return '';
-            const { data: products } = await db.from('products').select('*')
-                .eq('supplier_id', selectedSupplier.id).order('name');
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${tr('newOrder')}</h2>
-                        <button onclick="showSection('dashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                class="btn-secondary text-sm px-4 py-2">${tr('back')}</button>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow mb-4">
-                        <div class="font-bold">${currentUser.companies.name}</div>
-                        <div class="text-sm text-gray-600">${currentUser.companies.phone}</div>
-                        <div class="text-sm text-gray-600">${currentUser.companies.address}</div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow mb-4">
-                        <div class="font-semibold">${selectedSupplier.name}</div>
-                    </div>
-                    <div class="space-y-3 mb-20">
-                        ${products.map(p => `
-                            <div class="bg-white p-4 rounded-lg shadow">
-                                <div class="flex justify-between items-center">
-                                    <div class="flex-1">
-                                        <div class="font-semibold">${p.name}</div>
-                                        <div class="text-sm text-gray-500">${p.unit}</div>
-                                    </div>
-                                    <div class="qty-control">
-                                        <div class="qty-btn" onclick="changeQty('${p.id}', -1)">-</div>
-                                        <div class="qty-display" id="qty-${p.id}">0</div>
-                                        <div class="qty-btn" onclick="changeQty('${p.id}', 1)">+</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="bottom-bar">
-                        <button onclick="clearAllQty()" class="flex-1 bg-white border-2 px-6 py-3 rounded-lg font-semibold">
-                            ${tr('clearQty')}
-                        </button>
-                        <button onclick="previewOrder()" class="flex-1 btn-primary">
-                            ${tr('preview')}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function renderOrderHistory() {
-            if (!selectedSupplier) return '';
-            
-            let query = db.from('orders').select('*, companies(*)').eq('supplier_id', selectedSupplier.id);
-            
-            if (currentUser.role === 'staff' || currentUser.role === 'company_admin') {
-                query = query.eq('company_id', currentUser.company_id);
-            }
-            
-            const { data: orders } = await query.order('created_at', { ascending: false });
-            
-            const filteredOrders = currentUser.role === 'staff' 
-                ? orders.filter(o => {
-                    if (o.status !== 'confirmed') return true;
-                    const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-                    return (Date.now() - new Date(o.created_at).getTime()) <= fourteenDays;
-                })
-                : orders;
-
-            const statusMap = {
-                staff_draft: tr('staffDraft'),
-                pending_admin: tr('pendingAdmin'),
-                confirmed: tr('confirmed')
-            };
-
-            return `
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${tr('orderHistory')}</h2>
-                        <button onclick="showSection('dashboard', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                class="btn-secondary text-sm px-4 py-2">${tr('back')}</button>
-                    </div>
-                    <div class="space-y-3">
-                        ${filteredOrders.map(o => {
-                            const date = new Date(o.created_at).toLocaleDateString();
-                            return `
-                                <div class="bg-white p-4 rounded-lg shadow">
-                                    <div class="flex justify-between mb-2">
-                                        <div>
-                                            <div class="font-bold">${tr('orderNumber')}${o.id.slice(0, 8)}</div>
-                                            <div class="text-sm text-gray-600">${o.companies.name}</div>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="text-sm font-semibold ${
-                                                o.status === 'confirmed' ? 'text-green-600' :
-                                                o.status === 'pending_admin' ? 'text-orange-600' : 'text-gray-600'
-                                            }">${statusMap[o.status]}</div>
-                                            <div class="text-xs text-gray-500">${date}</div>
-                                        </div>
-                                    </div>
-                                    <button onclick="viewOrder('${o.id}')" class="btn-primary w-full text-sm">
-                                        ${tr('view')}
-                                    </button>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
         }
 
         function changeQty(productId, delta) {
-            if (!orderQuantities[productId]) orderQuantities[productId] = 0;
-            orderQuantities[productId] = Math.max(0, orderQuantities[productId] + delta);
-            document.getElementById(`qty-${productId}`).textContent = orderQuantities[productId];
+            if (!state.orderQty[productId]) state.orderQty[productId] = 0;
+            state.orderQty[productId] = Math.max(0, state.orderQty[productId] + delta);
+            document.getElementById(`qty-${productId}`).textContent = state.orderQty[productId];
         }
 
-        function clearAllQty() {
-            orderQuantities = {};
-            Object.keys(orderQuantities).forEach(id => {
-                const el = document.getElementById(`qty-${id}`);
-                if (el) el.textContent = '0';
-            });
+        function clearQty() {
+            state.orderQty = {};
             render();
         }
 
         async function previewOrder() {
-            const items = Object.entries(orderQuantities).filter(([_, qty]) => qty > 0);
-            if (items.length === 0) {
-                alert(tr('quantityRequired') || 'Please enter at least one quantity');
-                return;
-            }
+            const items = Object.entries(state.orderQty).filter(([_, q]) => q > 0);
+            if (items.length === 0) return alert('Please add quantities');
 
             const { data: order } = await db.from('orders').insert({
-                company_id: currentUser.company_id,
-                supplier_id: selectedSupplier.id,
+                company_id: state.user.company_id,
+                supplier_id: state.supplier.id,
                 status: 'staff_draft'
             }).select().single();
 
-            const orderItems = items.map(([productId, quantity]) => ({
-                order_id: order.id,
-                product_id: productId,
-                quantity
-            }));
+            await db.from('order_items').insert(
+                items.map(([product_id, quantity]) => ({ order_id: order.id, product_id, quantity }))
+            );
 
-            await db.from('order_items').insert(orderItems);
-            
-            alert('Order created successfully!');
-            showSection('dashboard', selectedSupplier);
+            alert('Order created!');
+            navigate('dashboard', state.supplier);
+        }
+
+        function showModal(content) {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.innerHTML = `<div class="bg-white rounded-xl p-6 mx-4 max-w-md w-full" onclick="event.stopPropagation()">${content}</div>`;
+            overlay.classList.add('active');
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'modal-overlay') return;
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        async function addSupplier() {
+            showModal(`
+                <h2 class="text-xl font-bold mb-4">${t('addSupplier')}</h2>
+                <input id="name" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="contact" placeholder="${t('contactPerson')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="phone" placeholder="${t('phone')}" class="w-full border rounded-lg p-3 mb-3">
+                <div class="flex gap-3">
+                    <button onclick="saveSupplier()" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
+                </div>
+            `);
+        }
+
+        async function saveSupplier(id = null) {
+            const name = document.getElementById('name').value.trim();
+            const contact = document.getElementById('contact').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!name || !contact || !phone) return alert('Fill all fields');
+
+            if (id) {
+                await db.from('suppliers').update({ name, contact_person: contact, phone }).eq('id', id);
+            } else {
+                await db.from('suppliers').insert({ name, contact_person: contact, phone });
+            }
+
+            closeModal();
+            render();
+        }
+
+        async function editSupplier(id) {
+            const { data } = await db.from('suppliers').select('*').eq('id', id).single();
+            showModal(`
+                <h2 class="text-xl font-bold mb-4">${t('edit')}</h2>
+                <input id="name" value="${data.name}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="contact" value="${data.contact_person}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="phone" value="${data.phone}" class="w-full border rounded-lg p-3 mb-3">
+                <div class="flex gap-3">
+                    <button onclick="saveSupplier('${id}')" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
+                </div>
+            `);
+        }
+
+        async function showDeleteSupplierModal() {
+            const { data: suppliers } = await db.from('suppliers').select('*').order('name');
+            showModal(`
+                <h2 class="text-xl font-bold mb-4">${t('selectToDelete')}</h2>
+                <div class="max-h-96 overflow-y-auto space-y-2">
+                    ${suppliers.map(s => `
+                        <div class="flex justify-between items-center border rounded-lg p-3">
+                            <span>${s.name}</span>
+                            <button onclick="deleteSupplier('${s.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                                ${t('delete')}
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button onclick="closeModal()" class="btn btn-gray w-full mt-4">${t('cancel')}</button>
+            `);
+        }
+
+        async function deleteSupplier(id) {
+            if (confirm('Delete supplier?')) {
+                await db.from('suppliers').delete().eq('id', id);
+                closeModal();
+                render();
+            }
+        }
+
+        async function addProduct() {
+            showModal(`
+                <h2 class="text-xl font-bold mb-4">${t('addProduct')}</h2>
+                <input id="pname" placeholder="${t('name')}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="punit" placeholder="${t('unit')}" class="w-full border rounded-lg p-3 mb-3">
+                <div class="flex gap-3">
+                    <button onclick="saveProduct()" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
+                </div>
+            `);
+        }
+
+        async function saveProduct(id = null) {
+            const name = document.getElementById('pname').value.trim();
+            const unit = document.getElementById('punit').value.trim();
+
+            if (!name || !unit) return alert('Fill all fields');
+
+            if (id) {
+                await db.from('products').update({ name, unit }).eq('id', id);
+            } else {
+                await db.from('products').insert({ name, unit, supplier_id: state.supplier.id });
+            }
+
+            closeModal();
+            render();
+        }
+
+        async function editProduct(id, name, unit) {
+            showModal(`
+                <h2 class="text-xl font-bold mb-4">${t('edit')}</h2>
+                <input id="pname" value="${name}" class="w-full border rounded-lg p-3 mb-3">
+                <input id="punit" value="${unit}" class="w-full border rounded-lg p-3 mb-3">
+                <div class="flex gap-3">
+                    <button onclick="saveProduct('${id}')" class="btn btn-primary flex-1">${t('save')}</button>
+                    <button onclick="closeModal()" class="btn btn-gray flex-1">${t('cancel')}</button>
+                </div>
+            `);
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Delete product?')) {
+                await db.from('products').delete().eq('id', id);
+                render();
+            }
         }
 
         async function viewOrder(orderId) {
-            const { data: order } = await db.from('orders')
-                .select('*, companies(*), suppliers(*)').eq('id', orderId).single();
-            const { data: items } = await db.from('order_items')
-                .select('*, products(*)').eq('order_id', orderId);
+            const { data: order } = await db.from('orders').select('*, companies(*), suppliers(*)').eq('id', orderId).single();
+            const { data: items } = await db.from('order_items').select('*, products(*)').eq('order_id', orderId);
 
+            const statusMap = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
             const date = new Date(order.created_at).toLocaleDateString();
 
             const html = `
+                <div class="header">
+                    <button onclick="navigate('orderHistory', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                    <h1 class="text-xl font-bold">${t('order')} #${order.id.slice(0, 8)}</h1>
+                </div>
                 <div class="p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">${tr('orderNumber')}${order.id.slice(0, 8)}</h2>
-                        <button onclick="showSection('orderHistory', ${JSON.stringify(selectedSupplier).replace(/"/g, '&quot;')})" 
-                                class="btn-secondary text-sm px-4 py-2">${tr('back')}</button>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow mb-4">
-                        <div class="font-bold">${order.companies.name}</div>
+                    <div class="card">
+                        <div class="font-bold text-lg">${order.companies.name}</div>
                         <div class="text-sm text-gray-600">${order.companies.phone}</div>
                         <div class="text-sm text-gray-600">${order.companies.address}</div>
-                        <div class="text-sm text-gray-500 mt-2">${date}</div>
+                        <div class="text-xs text-gray-500 mt-2">${date} • ${statusMap[order.status]}</div>
                     </div>
-                    <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <div class="card">
                         <div class="font-semibold">${order.suppliers.name}</div>
                     </div>
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="card">
                         <table class="w-full">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="text-left p-3">${tr('name')}</th>
-                                    <th class="text-left p-3">${tr('unit')}</th>
-                                    <th class="text-right p-3">${tr('quantity')}</th>
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left py-2">${t('name')}</th>
+                                    <th class="text-left py-2">${t('unit')}</th>
+                                    <th class="text-right py-2">${t('quantity')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${items.map(i => `
-                                    <tr class="border-t">
-                                        <td class="p-3">${i.products.name}</td>
-                                        <td class="p-3">${i.products.unit}</td>
-                                        <td class="p-3 text-right font-bold">${i.quantity}</td>
+                                    <tr class="border-b">
+                                        <td class="py-2">${i.products.name}</td>
+                                        <td class="py-2 text-sm text-gray-600">${i.products.unit}</td>
+                                        <td class="py-2 text-right font-semibold">${i.quantity}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -513,179 +386,202 @@
             document.getElementById('app').innerHTML = html;
         }
 
-        function addSupplier() {
-            showModal(`
-                <h3 class="text-xl font-bold mb-4">${tr('addSupplier')}</h3>
-                <input type="text" id="supplierName" placeholder="${tr('name')}" class="w-full border rounded p-2 mb-3">
-                <input type="text" id="supplierContact" placeholder="${tr('contactPerson')}" class="w-full border rounded p-2 mb-3">
-                <input type="text" id="supplierPhone" placeholder="${tr('phone')}" class="w-full border rounded p-2 mb-3">
-                <div class="flex gap-2">
-                    <button onclick="saveSupplier()" class="btn-primary flex-1">${tr('save')}</button>
-                    <button onclick="closeModal()" class="btn-secondary flex-1">${tr('cancel')}</button>
-                </div>
-            `);
-        }
-
-        async function saveSupplier(supplierId = null) {
-            const name = document.getElementById('supplierName').value.trim();
-            const contact = document.getElementById('supplierContact').value.trim();
-            const phone = document.getElementById('supplierPhone').value.trim();
-
-            if (!name || !contact || !phone) {
-                alert('Please fill all fields');
-                return;
-            }
-
-            if (supplierId) {
-                await db.from('suppliers').update({ name, contact_person: contact, phone }).eq('id', supplierId);
-            } else {
-                await db.from('suppliers').insert({ name, contact_person: contact, phone });
-            }
-
-            closeModal();
-            render();
-        }
-
-        function editSupplier(id) {
-            db.from('suppliers').select('*').eq('id', id).single().then(({ data }) => {
-                showModal(`
-                    <h3 class="text-xl font-bold mb-4">${tr('edit')} ${tr('suppliers')}</h3>
-                    <input type="text" id="supplierName" value="${data.name}" class="w-full border rounded p-2 mb-3">
-                    <input type="text" id="supplierContact" value="${data.contact_person}" class="w-full border rounded p-2 mb-3">
-                    <input type="text" id="supplierPhone" value="${data.phone}" class="w-full border rounded p-2 mb-3">
-                    <div class="flex gap-2">
-                        <button onclick="saveSupplier('${id}')" class="btn-primary flex-1">${tr('save')}</button>
-                        <button onclick="closeModal()" class="btn-secondary flex-1">${tr('cancel')}</button>
-                    </div>
-                `);
-            });
-        }
-
-        async function showDeleteSupplierModal() {
-            const { data: suppliers } = await db.from('suppliers').select('*').order('name');
-            showModal(`
-                <h3 class="text-xl font-bold mb-4">${tr('selectSupplier')}</h3>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${suppliers.map(s => `
-                        <div class="border p-3 rounded flex justify-between items-center">
-                            <div>${s.name}</div>
-                            <button onclick="deleteSupplier('${s.id}')" class="btn-danger text-sm px-4 py-2">
-                                ${tr('delete')}
-                            </button>
-                        </div>
-                    `).join('')}
-                </div>
-                <button onclick="closeModal()" class="btn-secondary w-full mt-4">${tr('cancel')}</button>
-            `);
-        }
-
-        async function deleteSupplier(id) {
-            if (confirm('Are you sure?')) {
-                await db.from('suppliers').delete().eq('id', id);
-                closeModal();
-                render();
-            }
-        }
-
-        function addProduct() {
-            showModal(`
-                <h3 class="text-xl font-bold mb-4">${tr('addProduct')}</h3>
-                <input type="text" id="productName" placeholder="${tr('name')}" class="w-full border rounded p-2 mb-3">
-                <input type="text" id="productUnit" placeholder="${tr('unit')}" class="w-full border rounded p-2 mb-3">
-                <div class="flex gap-2">
-                    <button onclick="saveProduct()" class="btn-primary flex-1">${tr('save')}</button>
-                    <button onclick="closeModal()" class="btn-secondary flex-1">${tr('cancel')}</button>
-                </div>
-            `);
-        }
-
-        async function saveProduct(productId = null) {
-            const name = document.getElementById('productName').value.trim();
-            const unit = document.getElementById('productUnit').value.trim();
-
-            if (!name || !unit) {
-                alert('Please fill all fields');
-                return;
-            }
-
-            if (productId) {
-                await db.from('products').update({ name, unit }).eq('id', productId);
-            } else {
-                await db.from('products').insert({ name, unit, supplier_id: selectedSupplier.id });
-            }
-
-            closeModal();
-            render();
-        }
-
-        function editProduct(id, name, unit) {
-            showModal(`
-                <h3 class="text-xl font-bold mb-4">${tr('edit')} ${tr('name')}</h3>
-                <input type="text" id="productName" value="${name}" class="w-full border rounded p-2 mb-3">
-                <input type="text" id="productUnit" value="${unit}" class="w-full border rounded p-2 mb-3">
-                <div class="flex gap-2">
-                    <button onclick="saveProduct('${id}')" class="btn-primary flex-1">${tr('save')}</button>
-                    <button onclick="closeModal()" class="btn-secondary flex-1">${tr('cancel')}</button>
-                </div>
-            `);
-        }
-
-        async function deleteProduct(id) {
-            if (confirm('Are you sure?')) {
-                await db.from('products').delete().eq('id', id);
-                render();
-            }
-        }
-
-        function showModal(content) {
-            const modal = document.createElement('div');
-            modal.id = 'modal';
-            modal.className = 'modal active';
-            modal.innerHTML = `<div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">${content}</div>`;
-            document.body.appendChild(modal);
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('modal');
-            if (modal) modal.remove();
-        }
-
         async function render() {
             const app = document.getElementById('app');
-            
-            if (!currentUser) {
-                app.innerHTML = renderLogin();
+            if (!state.user) {
+                app.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+                            <div class="flex justify-between mb-6">
+                                <h1 class="text-2xl font-bold">${t('login')}</h1>
+                                <button onclick="setLang('${state.lang === 'en' ? 'zh' : 'en'}')" class="text-blue-600 text-sm">
+                                    ${state.lang === 'en' ? '中文' : 'EN'}
+                                </button>
+                            </div>
+                            <input id="user" placeholder="${t('username')}" class="w-full border rounded-lg p-3 mb-3">
+                            <input id="pass" type="password" placeholder="${t('password')}" class="w-full border rounded-lg p-3 mb-4" onkeypress="if(event.key==='Enter') login(document.getElementById('user').value, document.getElementById('pass').value)">
+                            <button onclick="login(document.getElementById('user').value, document.getElementById('pass').value)" class="btn btn-primary w-full">${t('login')}</button>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
-            let content = '';
-            switch (currentSection) {
-                case 'suppliers':
-                    content = await renderSuppliersList();
-                    break;
-                case 'dashboard':
-                    content = await renderDashboard();
-                    break;
-                case 'products':
-                    content = await renderProducts();
-                    break;
-                case 'newOrder':
-                    content = await renderNewOrder();
-                    break;
-                case 'orderHistory':
-                    content = await renderOrderHistory();
-                    break;
-                default:
-                    content = await renderSuppliersList();
-            }
-            
-            app.innerHTML = content;
-        }
+            if (state.view === 'suppliers') {
+                const { data: suppliers } = await db.from('suppliers').select('*').order('name');
+                const isAdmin = state.user.role === 'super_admin';
 
-        function handleLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            login(username, password);
+                app.innerHTML = `
+                    <div class="header">
+                        <h1 class="text-xl font-bold flex-1">${t('suppliers')}</h1>
+                        <button onclick="setLang('${state.lang === 'en' ? 'zh' : 'en}')" class="text-blue-600 text-sm mr-2">
+                            ${state.lang === 'en' ? '中文' : 'EN'}
+                        </button>
+                        <button onclick="logout()" class="text-sm text-gray-600">${t('logout')}</button>
+                    </div>
+                    <div class="p-4">
+                        ${suppliers.map(s => `
+                            <div class="card">
+                                <div class="flex justify-between items-center">
+                                    <div onclick="navigate('dashboard', ${JSON.stringify(s).replace(/"/g, '&quot;')})" class="flex-1 cursor-pointer">
+                                        <div class="font-bold text-lg">${s.name}</div>
+                                        <div class="text-sm text-gray-600">${s.contact_person} • ${s.phone}</div>
+                                    </div>
+                                    ${isAdmin ? `
+                                        <button onclick="editSupplier('${s.id}')" class="text-blue-600 ml-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                            </svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${isAdmin ? `
+                        <div class="floating-btn floating-add" onclick="addSupplier()">+</div>
+                        <div class="floating-btn floating-delete" onclick="showDeleteSupplierModal()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            if (state.view === 'dashboard') {
+                const isStaff = state.user.role === 'staff';
+                const isAdmin = state.user.role === 'super_admin';
+
+                app.innerHTML = `
+                    <div class="header">
+                        <button onclick="navigate('suppliers')" class="text-2xl">←</button>
+                        <h1 class="text-xl font-bold">${state.supplier.name}</h1>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        ${isStaff ? `<button onclick="navigate('newOrder', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-primary w-full">+ ${t('newOrder')}</button>` : ''}
+                        ${isAdmin ? `<button onclick="navigate('products', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-cyan w-full">${t('manageProducts')}</button>` : ''}
+                        <button onclick="navigate('orderHistory', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="btn btn-gray w-full">${t('orderHistory')}</button>
+                    </div>
+                `;
+            }
+
+            if (state.view === 'products') {
+                const { data: products } = await db.from('products').select('*').eq('supplier_id', state.supplier.id).order('name');
+
+                app.innerHTML = `
+                    <div class="header">
+                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <h1 class="text-xl font-bold">${t('manageProducts')}</h1>
+                    </div>
+                    <div class="p-4">
+                        <button onclick="addProduct()" class="btn btn-primary w-full mb-4">${t('addProduct')}</button>
+                        ${products.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noProducts')}</div>` : ''}
+                        ${products.map(p => `
+                            <div class="card">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1">
+                                        <div class="font-semibold">${p.name}</div>
+                                        <div class="text-sm text-gray-600">${p.unit}</div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="editProduct('${p.id}', '${p.name}', '${p.unit}')" class="text-blue-600 px-3 py-1 border rounded-lg text-sm">${t('edit')}</button>
+                                        <button onclick="deleteProduct('${p.id}')" class="text-red-600 px-3 py-1 border rounded-lg text-sm">${t('delete')}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            if (state.view === 'newOrder') {
+                const { data: products } = await db.from('products').select('*').eq('supplier_id', state.supplier.id).order('name');
+
+                app.innerHTML = `
+                    <div class="header">
+                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <h1 class="text-xl font-bold">${t('newOrder')}</h1>
+                    </div>
+                    <div class="p-4 pb-24">
+                        <div class="card mb-4">
+                            <div class="font-bold">${state.user.companies.name}</div>
+                            <div class="text-sm text-gray-600">${state.user.companies.phone}</div>
+                            <div class="text-sm text-gray-600">${state.user.companies.address}</div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="font-semibold">${state.supplier.name}</div>
+                        </div>
+                        ${products.map(p => `
+                            <div class="card">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1">
+                                        <div class="font-semibold">${p.name}</div>
+                                        <div class="text-sm text-gray-500">${p.unit}</div>
+                                    </div>
+                                    <div class="qty-control">
+                                        <div class="qty-btn" onclick="changeQty('${p.id}', -1)">−</div>
+                                        <div class="qty-value" id="qty-${p.id}">${state.orderQty[p.id] || 0}</div>
+                                        <div class="qty-btn" onclick="changeQty('${p.id}', 1)">+</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="bottom-bar">
+                        <button onclick="clearQty()" class="btn btn-white flex-1">${t('clearQty')}</button>
+                        <button onclick="previewOrder()" class="btn btn-primary flex-1">${t('preview')}</button>
+                    </div>
+                `;
+            }
+
+            if (state.view === 'orderHistory') {
+                let query = db.from('orders').select('*, companies(*)').eq('supplier_id', state.supplier.id);
+                if (state.user.role !== 'super_admin') {
+                    query = query.eq('company_id', state.user.company_id);
+                }
+
+                const { data: orders } = await query.order('created_at', { ascending: false });
+
+                const filtered = state.user.role === 'staff'
+                    ? orders.filter(o => {
+                        if (o.status !== 'confirmed') return true;
+                        return (Date.now() - new Date(o.created_at).getTime()) <= 14 * 24 * 60 * 60 * 1000;
+                    })
+                    : orders;
+
+                const statusMap = { staff_draft: t('draft'), pending_admin: t('pending'), confirmed: t('confirmed') };
+
+                app.innerHTML = `
+                    <div class="header">
+                        <button onclick="navigate('dashboard', ${JSON.stringify(state.supplier).replace(/"/g, '&quot;')})" class="text-2xl">←</button>
+                        <h1 class="text-xl font-bold">${t('orderHistory')}</h1>
+                    </div>
+                    <div class="p-4">
+                        ${filtered.length === 0 ? `<div class="text-center text-gray-500 py-8">${t('noOrders')}</div>` : ''}
+                        ${filtered.map(o => {
+                            const date = new Date(o.created_at).toLocaleDateString();
+                            return `
+                                <div class="card cursor-pointer" onclick="viewOrder('${o.id}')">
+                                    <div class="flex justify-between mb-2">
+                                        <div>
+                                            <div class="font-bold">${t('order')} #${o.id.slice(0, 8)}</div>
+                                            <div class="text-sm text-gray-600">${o.companies.name}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-semibold ${
+                                                o.status === 'confirmed' ? 'text-green-600' :
+                                                o.status === 'pending_admin' ? 'text-orange-600' : 'text-gray-600'
+                                            }">${statusMap[o.status]}</div>
+                                            <div class="text-xs text-gray-500">${date}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', render);
